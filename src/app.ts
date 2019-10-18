@@ -1,4 +1,4 @@
-import { lightningChart, AxisTickStrategies, emptyLine, DataPatterns, AxisScrollStrategies, SolidFill, ColorHEX, UIElementBuilders, UIOrigins, LineSeries, ChartXY, Dashboard } from "@arction/lcjs"
+import { lightningChart, AxisTickStrategies, emptyLine, DataPatterns, AxisScrollStrategies, SolidFill, ColorHEX, UIElementBuilders, UIOrigins, LineSeries, ChartXY, Dashboard, ChartOptions, DashboardBasicOptions, VisibleTicks, FormattingRange, AxisTickStrategy, emptyTick } from "@arction/lcjs"
 import { defaultStyle } from "./chartStyle"
 import './styles/main.scss'
 
@@ -26,8 +26,8 @@ interface Point {
     y: number
 }
 
-function ArrayBufferToPointArray(buf: Uint8Array, xMultiplier: number = 1, yScaler: (n: number) => number = (n => n)): Point[] {
-    return Array.from(buf).map((p, i) => ({ x: i * xMultiplier, y: yScaler(p) }))
+function ArrayBufferToPointArray(buf: Uint8Array, xScaler: (n: number) => number = (n) => n, yScaler: (n: number) => number = (n => n)): Point[] {
+    return Array.from(buf).map((p, i) => ({ x: xScaler(i), y: yScaler(p) }))
 }
 
 let maxFreqHistChanged = false
@@ -40,18 +40,19 @@ const lc = lightningChart()
 const db = lc.Dashboard({
     containerId: 'chart',
     numberOfColumns: 1,
-    numberOfRows: 2
+    numberOfRows: 4
 })
 
 db
     .setBackgroundFillStyle(defaultStyle.backgroundFill)
     .setBackgroundStrokeStyle(defaultStyle.backgroundStroke)
 
-const timeDomainChart = createChart(db, 0, 'Time Domain', 'Sample', 'Value')
+const timeDomainChart = createChart(db, { columnIndex: 0, columnSpan: 1, rowIndex: 0, rowSpan: 1 }, 'Time Domain', 'Sample', 'Amplitude', [-1, 1])
+const waveformHistoryChart = createChart(db, { columnIndex: 0, columnSpan: 1, rowIndex: 1, rowSpan: 1 }, 'Waveform history', 'Time (s)', 'Amplitude', [-1, 1])
 
 const timeDomainSeries = createSeries(timeDomainChart, 'Time Domain', '#fff')
 
-const frequencyChart = createChart(db, 1, 'Spectrum', 'Frequency (Hz)', 'dB')
+const frequencyChart = createChart(db, { columnIndex: 0, columnSpan: 1, rowIndex: 2, rowSpan: 2 }, 'Spectrum', 'Frequency (Hz)', 'dB', [0, 256])
 
 function createSeries(chart: ChartXY, name: string, color: string): LineSeries {
     return chart.addLineSeries({
@@ -62,14 +63,12 @@ function createSeries(chart: ChartXY, name: string, color: string): LineSeries {
         .setCursorInterpolationEnabled(false)
 }
 
-function createChart(db: Dashboard, rI: number, title: string, xAxisTitle: string, yAxisTitle: string): ChartXY {
+function createChart(db: Dashboard, co: DashboardBasicOptions, title: string, xAxisTitle: string, yAxisTitle: string, yInterval: [number, number]): ChartXY {
     const chart = db.createChartXY({
-        columnIndex: 0,
-        columnSpan: 1,
-        rowIndex: rI,
-        rowSpan: 1,
+        ...co,
         chartXYOptions: {
-            defaultAxisXTickStrategy: AxisTickStrategies.Numeric,
+            // hack
+            defaultAxisXTickStrategy: Object.assign({}, AxisTickStrategies.Numeric),
             defaultAxisYTickStrategy: AxisTickStrategies.Numeric,
             autoCursorBuilder: defaultStyle.autoCursor
         }
@@ -89,7 +88,7 @@ function createChart(db: Dashboard, rI: number, title: string, xAxisTitle: strin
 
     chart.getDefaultAxisY()
         .setScrollStrategy(undefined)
-        .setInterval(0, 256)
+        .setInterval(yInterval[0], yInterval[1])
         .setTitle(yAxisTitle)
         .setTitleFillStyle(defaultStyle.titleFill)
         .setTitleFont(defaultStyle.titleFont.setSize(14))
@@ -109,9 +108,37 @@ const resetHistoryMaxButton = frequencyChart
     .setTextFillStyle(defaultStyle.titleFill)
 
 const frequencySeries = createSeries(frequencyChart, 'Frequency', '#fff')
+const waveformSeries = createSeries(waveformHistoryChart, 'Waveform', '#fff')
 const historySeries = createSeries(frequencyChart, 'Frequency Short History', '#ff9511')
 const maxFreqSeries = createSeries(frequencyChart, 'Frequency Max', '#ffff11')
 
+waveformHistoryChart
+    .getDefaultAxisX()
+    .setInterval(0, audioCtx.sampleRate * 10)
+
+setInterval(()=>console.log('s'),1000)
+
+// hack
+waveformHistoryChart.getDefaultAxisX().tickStrategy.formatValue = (value: number, range: FormattingRange): string => {
+    return (value / audioCtx.sampleRate).toFixed(2)
+}
+
+waveformSeries
+    .setMaxPointCount(1000 * 1000)
+    .setCursorInterpolationEnabled(false)
+
+const d = new Uint8Array(analyzer.fftSize)
+const processor = audioCtx.createScriptProcessor(analyzer.fftSize)
+processor.onaudioprocess = () => {
+    analyzer.getByteTimeDomainData(d)
+    timeDomainSeries.clear()
+    timeDomainSeries.add(ArrayBufferToPointArray(d, noScaler, freqScaler))
+    const waveData = ArrayBufferToPointArray(d, offSetScaler, freqScaler)
+    waveformSeries.add(waveData)
+    lastTime += waveData.length
+}
+
+processor.connect(analyzer)
 
 const srcSelector = document.getElementById('src-selector') as HTMLSelectElement
 
@@ -207,20 +234,30 @@ resetHistoryMaxButton.onMouseClick(() => {
     maxFreqSeries.add(ArrayBufferToPointArray(frequencyMaxHistoryData))
 })
 
-const dbScaler = (n: number): number =>
-    ((Math.min(255, Math.max(0, n)) - 0) * (analyzer.maxDecibels - analyzer.minDecibels) / (255 - 0) + analyzer.minDecibels);
+const scaleToRange = (val: number, origRange: [number, number], newRange: [number, number]): number =>
+    (val - origRange[0]) * (newRange[1] - newRange[0]) / (origRange[1] - origRange[0]) + newRange[0]
+
+
+const dbScaler = (n: number): number => scaleToRange(n, [0, 256], [analyzer.minDecibels, analyzer.maxDecibels])
+
+const freqScaler = (n: number): number => scaleToRange(n, [0, 256], [-1, 1])
+
+const noScaler = (n) => n
+
+const offSetScaler = (n) => n + lastTime
+
+const multiplierScaler = (multiplier) => (n) => n * multiplier
 
 let lastUpdate: number = 0
 let delta: number
+let lastTime = 0
 function update(ts: number) {
     delta = (ts - lastUpdate)
     lastUpdate = ts
     analyzer.getByteTimeDomainData(timeDomainData)
     analyzer.getByteFrequencyData(frequencyData)
-    timeDomainSeries.clear()
-    timeDomainSeries.add(ArrayBufferToPointArray(timeDomainData))
     frequencySeries.clear()
-    frequencySeries.add(ArrayBufferToPointArray(frequencyData, audioCtx.sampleRate / analyzer.fftSize, dbScaler))
+    frequencySeries.add(ArrayBufferToPointArray(frequencyData, multiplierScaler(audioCtx.sampleRate / analyzer.fftSize), dbScaler))
     for (let i = 0; i < frequencyHistoryData.length; i++) {
         frequencyHistoryData[i].y = Math.max(Math.max(frequencyData[i], frequencyHistoryData[i].y - 25 / 1000 * delta), 0)
         maxFreqTemp = Math.max(Math.max(frequencyData[i], frequencyMaxHistoryData[i]), 0)
@@ -233,7 +270,7 @@ function update(ts: number) {
     historySeries.add(frequencyHistoryData.map((p, i) => ({ x: p.x * audioCtx.sampleRate / analyzer.fftSize, y: dbScaler(p.y) })))
     if (maxFreqHistChanged) {
         maxFreqSeries.clear()
-        maxFreqSeries.add(ArrayBufferToPointArray(frequencyMaxHistoryData, audioCtx.sampleRate / analyzer.fftSize, dbScaler))
+        maxFreqSeries.add(ArrayBufferToPointArray(frequencyMaxHistoryData, multiplierScaler(audioCtx.sampleRate / analyzer.fftSize), dbScaler))
         maxFreqHistChanged = false
     }
     window.requestAnimationFrame(update)
