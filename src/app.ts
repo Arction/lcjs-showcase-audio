@@ -7,7 +7,7 @@ enum SrcOption {
     file = 'file',
     truck = 'truck'
 }
-const truckSrcUrl = '/Truck_driving_by-Jason_Baker-2112866529.wav'
+const truckSrcUrl = 'Truck_driving_by-Jason_Baker-2112866529.wav'
 let listen = false
 let src: SrcOption = SrcOption.mic
 

@@ -24,7 +24,7 @@ module.exports = {
     },
     devtool: 'eval-source-map',
     devServer: {
-        contentBase: path.join(__dirname, 'dist'),
+        contentBase: path.join(__dirname, 'out'),
         compress: true
     },
     resolve: {
@@ -32,7 +32,7 @@ module.exports = {
     },
     output: {
         filename: '[name].bundle.js',
-        path: path.resolve(__dirname, 'dist')
+        path: path.resolve(__dirname, 'out')
     },
     optimization: {
         splitChunks: {
