@@ -11,6 +11,7 @@
   "author": "",
   "license": "MIT",
   "devDependencies": {
+    "copy-webpack-plugin": "^5.0.4",
     "css-loader": "^3.2.0",
     "handlebars": "^4.4.3",
     "handlebars-loader": "^1.7.1",

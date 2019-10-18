@@ -1,4 +1,5 @@
 const HtmlWebpackPlugin = require('html-webpack-plugin')
+const CopyPlugin = require('copy-webpack-plugin')
 const path = require('path')
 
 module.exports = {
@@ -13,7 +14,7 @@ module.exports = {
             },
             {
                 test: /\.s[ac]ss$/i,
-                use:[
+                use: [
                     'style-loader',
                     'css-loader',
                     'sass-loader'
@@ -42,6 +43,9 @@ module.exports = {
         new HtmlWebpackPlugin({
             title: 'lcjs-typescript-example',
             template: '!!handlebars-loader!src/index.hbs'
-        })
+        }),
+        new CopyPlugin([
+            { from: 'src/static', to: '' }
+        ])
     ]
 }

@@ -1,107 +1,35 @@
-import { lightningChart, AxisTickStrategies, emptyLine, DataPatterns, point, AxisScrollStrategies, SolidFill, ColorHEX, UIElementBuilders, UIOrigins } from "@arction/lcjs"
+import { lightningChart, AxisTickStrategies, emptyLine, DataPatterns, AxisScrollStrategies, SolidFill, ColorHEX, UIElementBuilders, UIOrigins, LineSeries, ChartXY, Dashboard } from "@arction/lcjs"
 import { defaultStyle } from "./chartStyle"
 import './styles/main.scss'
 
-// import { lightningChart, SolidLine, SolidFill, emptyFill, emptyLine, AxisTickStrategies, AutoCursorXYBuilder, AutoCursorBuilders, ColorHEX } from "@arction/lcjs"
-// import { defaultStyle } from "./chartStyle"
-// import { WAV } from "./WAV"
-
-
-// fetch('/Truck_driving_by-Jason_Baker-2112866529.wav')
-//     .then(d => d.arrayBuffer())
-//     .then(buffer => {
-//         const w = new WAV(buffer)
-//         console.log('WAW', w)
-//     })
-
-// const lc = lightningChart()
-// const chart = lc.ChartXY({
-//     containerId: 'chart',
-//     defaultAxisXTickStrategy: AxisTickStrategies.NumericWithUnits,
-//     defaultAxisYTickStrategy: AxisTickStrategies.NumericWithUnits,
-//     autoCursorBuilder: defaultStyle.autoCursor
-// })
-
-// chart.setTitle('Sound')
-// chart.setBackgroundFillStyle(defaultStyle.backgroundFill)
-// chart.setBackgroundStrokeStyle(emptyLine)
-// chart.setChartBackgroundStroke(defaultStyle.chart.backgroundStroke)
-// chart.setChartBackgroundFillStyle(defaultStyle.chart.backgroundFill)
-// chart.setChartBackgroundStroke(emptyLine)
-// chart.setTitleFillStyle(defaultStyle.titleFill)
-// chart.setTitleFont(defaultStyle.titleFont)
-
-// chart.getAxes().forEach(axis => axis.setTickStyle(defaultStyle.series.tick))
-
-// const lineSeries = chart.addLineSeries()
-
-// lineSeries.setStrokeStyle((style: SolidLine) => style.setThickness(5).setFillStyle(new SolidFill({color:ColorHEX('#fff')})))
-
-// lineSeries.add([
-//     { x: 0, y: 0 },
-//     { x: 1, y: 7 },
-//     { x: 2, y: 3 },
-//     { x: 3, y: 10 },
-// ])
-
-
-
+enum SrcOption {
+    mic = 'mic',
+    file = 'file',
+    truck = 'truck'
+}
+const truckSrcUrl = '/Truck_driving_by-Jason_Baker-2112866529.wav'
+let listen = false
+let src: SrcOption = SrcOption.mic
 
 const mediaDevices = navigator.mediaDevices
+const audioCtx = new AudioContext()
+const analyzer = audioCtx.createAnalyser()
 
+const timeDomainData = new Uint8Array(analyzer.fftSize)
+const frequencyData = new Uint8Array(analyzer.frequencyBinCount)
+const frequencyHistoryData = Array.from<Point>(Array(analyzer.frequencyBinCount)).map((_, i) => ({ x: i, y: 0 }))
+const frequencyMaxHistoryData = new Uint8Array(analyzer.frequencyBinCount)
+interface Point {
+    x: number,
+    y: number
+}
 
-mediaDevices.getUserMedia({ audio: true })
-    .then(stream => {
-        const audioCtx = new AudioContext()
-        const analyzer = audioCtx.createAnalyser()
-        const src = audioCtx.createMediaStreamSource(stream)
-        src.connect(analyzer)
-        // analyzer.connect(audioCtx.destination)
-        const timeDomainData = new Uint8Array(analyzer.fftSize)
-        const frequencyData = new Uint8Array(analyzer.frequencyBinCount)
-        const frequencyHistoryData = new Uint8Array(analyzer.frequencyBinCount)
-        const frequencyMaxHistoryData = new Uint8Array(analyzer.frequencyBinCount)
-        analyzer.getByteTimeDomainData(timeDomainData)
-        analyzer.getByteFrequencyData(frequencyData)
-        timeDomainSeries.setMaxPointCount(10 * 1000)
-        frequencyChart.getDefaultAxisX().setInterval(0, analyzer.frequencyBinCount)
-        timeDomainChart.getDefaultAxisX().setInterval(0, analyzer.fftSize)
+function ArrayBufferToPointArray(buf: Uint8Array): Point[] {
+    return Array.from(buf).map((p, i) => ({ x: i, y: p }))
+}
 
-        resetHistoryMaxButton.onMouseClick(() => {
-            for (let i = 0; i < frequencyMaxHistoryData.byteLength; i++) {
-                frequencyMaxHistoryData[i] = 0
-            }
-        })
-
-        let maxFreqHistChanged = false
-        let maxFreqTemp = 0
-        function update() {
-            analyzer.getByteTimeDomainData(timeDomainData)
-            analyzer.getByteFrequencyData(frequencyData)
-            timeDomainSeries.clear()
-            timeDomainSeries.add(Array.from(timeDomainData).map((p, i) => ({ x: i, y: p })))
-            frequencySeries.clear()
-            frequencySeries.add(Array.from(frequencyData).map((p, i) => ({ x: i, y: p })))
-            for (let i = 0; i < frequencyHistoryData.byteLength; i++) {
-                frequencyHistoryData[i] = Math.max(Math.max(frequencyData[i], frequencyHistoryData[i] - 1), 0)
-                maxFreqTemp = Math.max(Math.max(frequencyData[i], frequencyMaxHistoryData[i]), 0)
-                if (maxFreqTemp > frequencyMaxHistoryData[i]) {
-                    maxFreqHistChanged = true
-                    frequencyMaxHistoryData[i] = maxFreqTemp
-                }
-            }
-            historySeries.clear()
-            historySeries.add(Array.from(frequencyHistoryData).map((p, i) => ({ x: i, y: p })))
-            if (maxFreqHistChanged) {
-                maxFreqSeries.clear()
-                maxFreqSeries.add(Array.from(frequencyMaxHistoryData).map((p, i) => ({ x: i, y: p })))
-                maxFreqHistChanged = false
-            }
-            window.requestAnimationFrame(update)
-        }
-
-        window.requestAnimationFrame(update)
-    })
+let maxFreqHistChanged = false
+let maxFreqTemp = 0
 
 // chart
 
@@ -117,75 +45,53 @@ db
     .setBackgroundFillStyle(defaultStyle.backgroundFill)
     .setBackgroundStrokeStyle(defaultStyle.backgroundStroke)
 
-const timeDomainChart = db.createChartXY({
-    columnIndex: 0,
-    columnSpan: 1,
-    rowIndex: 0,
-    rowSpan: 1,
-    chartXYOptions: {
-        defaultAxisXTickStrategy: AxisTickStrategies.NumericWithUnits,
-        defaultAxisYTickStrategy: AxisTickStrategies.Numeric,
-        autoCursorBuilder: defaultStyle.autoCursor
-    }
-})
-    .setBackgroundFillStyle(defaultStyle.backgroundFill)
-    .setBackgroundStrokeStyle(defaultStyle.backgroundStroke)
-    .setTitle('Time domain')
+const timeDomainChart = createChart(db, 0, 'Time Domain', 'Sample', 'Value')
 
-timeDomainChart
-    .getAxes().forEach(axis => {
-        axis.setTickStyle(defaultStyle.axis.tick)
+const timeDomainSeries = createSeries(timeDomainChart, 'Time Domain', '#fff')
+
+const frequencyChart = createChart(db, 1, 'Frequency', 'Frequency', 'Value')
+
+function createSeries(chart: ChartXY, name: string, color: string): LineSeries {
+    return chart.addLineSeries({
+        dataPattern: DataPatterns.horizontalProgressive
     })
-timeDomainChart.getDefaultAxisX()
-    .setScrollStrategy(AxisScrollStrategies.progressive)
-    .setInterval(0, 1000 * 1000)
-    .setTitle('Sample')
-    .setTitleFillStyle(defaultStyle.titleFill)
-    .setTitleFont(defaultStyle.titleFont.setSize(14))
+        .setStrokeStyle(defaultStyle.series.stroke.setFillStyle(new SolidFill({ color: ColorHEX(color) })))
+        .setName(name)
+}
 
-timeDomainChart.getDefaultAxisY()
-    .setScrollStrategy(undefined)
-    .setInterval(0, 256)
-    .setTitle('Value')
-    .setTitleFillStyle(defaultStyle.titleFill)
-    .setTitleFont(defaultStyle.titleFont.setSize(14))
-
-const timeDomainSeries = timeDomainChart.addLineSeries({
-    dataPattern: DataPatterns.horizontalProgressive
-})
-    .setStrokeStyle(defaultStyle.series.stroke)
-
-const frequencyChart = db.createChartXY({
-    columnIndex: 0,
-    columnSpan: 1,
-    rowIndex: 1,
-    rowSpan: 1,
-    chartXYOptions: {
-        defaultAxisXTickStrategy: AxisTickStrategies.NumericWithUnits,
-        defaultAxisYTickStrategy: AxisTickStrategies.Numeric,
-        autoCursorBuilder: defaultStyle.autoCursor
-    }
-})
-    .setBackgroundFillStyle(defaultStyle.backgroundFill)
-    .setBackgroundStrokeStyle(defaultStyle.backgroundStroke)
-    .setTitle('Frequency')
-
-frequencyChart
-    .getAxes().forEach(axis => {
-        axis.setTickStyle(defaultStyle.axis.tick)
+function createChart(db: Dashboard, rI: number, title: string, xAxisTitle: string, yAxisTitle: string): ChartXY {
+    const chart = db.createChartXY({
+        columnIndex: 0,
+        columnSpan: 1,
+        rowIndex: rI,
+        rowSpan: 1,
+        chartXYOptions: {
+            defaultAxisXTickStrategy: AxisTickStrategies.NumericWithUnits,
+            defaultAxisYTickStrategy: AxisTickStrategies.Numeric,
+            autoCursorBuilder: defaultStyle.autoCursor
+        }
     })
-frequencyChart.getDefaultAxisX()
-    .setScrollStrategy(AxisScrollStrategies.progressive)
-    .setTitle('Sample')
-    .setTitleFillStyle(defaultStyle.titleFill)
-    .setTitleFont(defaultStyle.titleFont.setSize(14))
+        .setBackgroundFillStyle(defaultStyle.backgroundFill)
+        .setBackgroundStrokeStyle(defaultStyle.backgroundStroke)
+        .setTitle(title)
+    chart
+        .getAxes().forEach(axis => {
+            axis.setTickStyle(defaultStyle.axis.tick)
+        })
+    chart.getDefaultAxisX()
+        .setScrollStrategy(AxisScrollStrategies.progressive)
+        .setTitle(xAxisTitle)
+        .setTitleFillStyle(defaultStyle.titleFill)
+        .setTitleFont(defaultStyle.titleFont.setSize(14))
 
-frequencyChart.getDefaultAxisY()
-    .setScrollStrategy(undefined)
-    .setInterval(0, 256)
-    .setTitle('Value')
-    .setTitleFillStyle(defaultStyle.titleFill)
-    .setTitleFont(defaultStyle.titleFont.setSize(14))
+    chart.getDefaultAxisY()
+        .setScrollStrategy(undefined)
+        .setInterval(0, 256)
+        .setTitle(yAxisTitle)
+        .setTitleFillStyle(defaultStyle.titleFill)
+        .setTitleFont(defaultStyle.titleFont.setSize(14))
+    return chart
+}
 
 const resetHistoryMaxButton = frequencyChart
     .addUIElement(UIElementBuilders.ButtonBox.addStyler(styler => styler
@@ -199,20 +105,129 @@ const resetHistoryMaxButton = frequencyChart
     .setFont(defaultStyle.titleFont.setSize(14))
     .setTextFillStyle(defaultStyle.titleFill)
 
-const frequencySeries = frequencyChart.addLineSeries({
-    dataPattern: DataPatterns.horizontalProgressive
-})
-    .setStrokeStyle(defaultStyle.series.stroke)
-    .setName('Frequency')
+const frequencySeries = createSeries(frequencyChart, 'Frequency', '#fff')
+const historySeries = createSeries(frequencyChart, 'Frequency Short History', '#ff9511')
+const maxFreqSeries = createSeries(frequencyChart, 'Frequency Max', '#ffff11')
 
-const historySeries = frequencyChart.addLineSeries({
-    dataPattern: DataPatterns.horizontalProgressive
-})
-    .setStrokeStyle(defaultStyle.series.stroke.setFillStyle(new SolidFill({ color: ColorHEX('#ff9511') })))
-    .setName('Frequency Short History')
 
-const maxFreqSeries = frequencyChart.addLineSeries({
-    dataPattern: DataPatterns.horizontalProgressive
+const srcSelector = document.getElementById('src-selector') as HTMLSelectElement
+
+async function getAudioFileUrl(): Promise<string> {
+    return new Promise((resolve) => {
+        const el = document.getElementById('audio-file') as HTMLInputElement
+        el.addEventListener('change', () => {
+            resolve(el.value)
+        })
+    })
+}
+
+let disconnect: () => void
+const updateSource = async () => {
+    const selectedOptionElement = srcSelector[srcSelector.selectedIndex] as HTMLOptionElement
+    src = selectedOptionElement.value as SrcOption
+    if (src === SrcOption.file) {
+        document.getElementById('audio-input').style.display = 'inline-block'
+    } else {
+        const ai = document.getElementById('audio-input') as HTMLInputElement
+        ai.style.display = 'none'
+        ai.value = ''
+    }
+    if (disconnect) {
+        disconnect()
+        disconnect = null
+    }
+    switch (src) {
+        case SrcOption.mic:
+            disconnect = await listenMic()
+            break
+        case SrcOption.file:
+            disconnect = await listenToFile(await getAudioFileUrl())
+            break
+        case SrcOption.truck:
+            disconnect = await listenToFile(truckSrcUrl)
+            break
+    }
+}
+srcSelector.addEventListener('change', updateSource)
+updateSource()
+const listenElement = document.getElementById('listen') as HTMLInputElement
+
+listenElement.addEventListener('change', () => {
+    listen = listenElement.checked
+
+    if (listen) {
+        analyzer.connect(audioCtx.destination)
+    } else {
+        analyzer.disconnect(audioCtx.destination)
+    }
 })
-    .setStrokeStyle(defaultStyle.series.stroke.setFillStyle(new SolidFill({ color: ColorHEX('#ffff11') })))
-    .setName('Frequency Max')
+
+async function listenMic(): Promise<() => void> {
+    return mediaDevices.getUserMedia({ audio: true })
+        .then(stream => {
+            const src = audioCtx.createMediaStreamSource(stream)
+            src.connect(analyzer)
+            return src.disconnect.bind(src, analyzer)
+        })
+}
+
+async function listenToFile(url): Promise<() => void> {
+    return fetch(url)
+        .then(d => d.arrayBuffer())
+        .then(d => audioCtx.decodeAudioData(d))
+        .then(d => {
+            const src = audioCtx.createBufferSource()
+            src.buffer = d
+            src.connect(analyzer)
+            src.start(0)
+            src.loop = true
+            return () => {
+                src.loop = false
+                src.stop()
+                src.disconnect(analyzer)
+            }
+        })
+}
+
+frequencyChart.getDefaultAxisX().setInterval(0, analyzer.frequencyBinCount)
+timeDomainChart.getDefaultAxisX().setInterval(0, analyzer.fftSize)
+
+resetHistoryMaxButton.onMouseClick(() => {
+    for (let i = 0; i < frequencyMaxHistoryData.byteLength; i++) {
+        frequencyMaxHistoryData[i] = 0
+    }
+    maxFreqSeries.clear()
+    maxFreqSeries.add(ArrayBufferToPointArray(frequencyMaxHistoryData))
+})
+
+let lastUpdate: number = 0
+let delta: number
+function update(ts: number) {
+    delta = (ts - lastUpdate)
+    lastUpdate = ts
+    analyzer.getByteTimeDomainData(timeDomainData)
+    analyzer.getByteFrequencyData(frequencyData)
+    timeDomainSeries.clear()
+    timeDomainSeries.add(ArrayBufferToPointArray(timeDomainData))
+    frequencySeries.clear()
+    frequencySeries.add(ArrayBufferToPointArray(frequencyData))
+    for (let i = 0; i < frequencyHistoryData.length; i++) {
+        frequencyHistoryData[i].y = Math.max(Math.max(frequencyData[i], frequencyHistoryData[i].y - 25 / 1000 * delta), 0)
+        maxFreqTemp = Math.max(Math.max(frequencyData[i], frequencyMaxHistoryData[i]), 0)
+        if (maxFreqTemp > frequencyMaxHistoryData[i]) {
+            maxFreqHistChanged = true
+            frequencyMaxHistoryData[i] = maxFreqTemp
+        }
+    }
+    historySeries.clear()
+    historySeries.add(frequencyHistoryData)
+    if (maxFreqHistChanged) {
+        maxFreqSeries.clear()
+        maxFreqSeries.add(ArrayBufferToPointArray(frequencyMaxHistoryData))
+        maxFreqHistChanged = false
+    }
+    window.requestAnimationFrame(update)
+}
+
+window.requestAnimationFrame(update)
+

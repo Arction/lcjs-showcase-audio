@@ -11,11 +11,17 @@
 <body>
   <div class="container">
     <div>
-      <select>
-        <option>Microphone</option>
-        <option>Audio Stream</option>
-        <option>Truck Driving</option>
+      <select id="src-selector">
+        <option value="mic">Microphone</option>
+        <option value="file">Audio File</option>
+        <option value="truck">Truck Driving</option>
       </select>
+      <label for="listen">Listen to the audio:</label>
+      <input type="checkbox" id="listen" name="listen"/>
+      <div id="audio-input" style="display: none;">
+        <label for="audio-file-url">Audio File URL:</label>
+        <input type="url" id='audio-file' name="audio-file-url"/>
+      </div>
     </div>
     <div id='chart'></div>
   </div>
