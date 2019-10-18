@@ -1,14 +1,12 @@
 {
-  "name": "lcjs-typescript-example",
+  "name": "@smw/sound",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Audio visualization",
   "scripts": {
     "start": "webpack-dev-server",
     "build": "webpack --mode production"
   },
-  "keywords": [],
-  "author": "",
+  "author": "Ilkka Kuosmanen <dev.snekw@gmail.com> (https://snekw.com)",
   "license": "MIT",
   "devDependencies": {
     "copy-webpack-plugin": "^5.0.4",
