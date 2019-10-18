@@ -5,9 +5,11 @@ import './styles/main.scss'
 enum SrcOption {
     mic = 'mic',
     file = 'file',
-    truck = 'truck'
+    truck = 'truck',
+    f500_1000_1000 = '500_1000_1000'
 }
 const truckSrcUrl = 'Truck_driving_by-Jason_Baker-2112866529.wav'
+const f500_1000_1000_url = '500_1000_10000.wav'
 let listen = false
 let src: SrcOption = SrcOption.mic
 
@@ -57,6 +59,7 @@ function createSeries(chart: ChartXY, name: string, color: string): LineSeries {
     })
         .setStrokeStyle(defaultStyle.series.stroke.setFillStyle(new SolidFill({ color: ColorHEX(color) })))
         .setName(name)
+        .setCursorInterpolationEnabled(false)
 }
 
 function createChart(db: Dashboard, rI: number, title: string, xAxisTitle: string, yAxisTitle: string): ChartXY {
@@ -145,6 +148,9 @@ const updateSource = async () => {
             break
         case SrcOption.truck:
             disconnect = await listenToFile(truckSrcUrl)
+            break
+        case SrcOption.f500_1000_1000:
+            disconnect = await listenToFile(f500_1000_1000_url)
             break
     }
 }
