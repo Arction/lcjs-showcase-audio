@@ -1,4 +1,18 @@
-import { lightningChart, AxisTickStrategies, emptyLine, DataPatterns, AxisScrollStrategies, SolidFill, ColorHEX, UIElementBuilders, UIOrigins, LineSeries, ChartXY, Dashboard, ChartOptions, DashboardBasicOptions, VisibleTicks, FormattingRange, AxisTickStrategy, emptyTick } from "@arction/lcjs"
+import {
+    lightningChart,
+    AxisTickStrategies,
+    DataPatterns,
+    AxisScrollStrategies,
+    SolidFill,
+    ColorHEX,
+    UIElementBuilders,
+    UIOrigins,
+    LineSeries,
+    ChartXY,
+    Dashboard,
+    DashboardBasicOptions,
+    FormattingRange
+} from "@arction/lcjs"
 import { defaultStyle } from "./chartStyle"
 import './styles/main.scss'
 
@@ -26,7 +40,7 @@ interface Point {
     y: number
 }
 
-function ArrayBufferToPointArray(buf: Uint8Array, xScaler: (n: number) => number = (n) => n, yScaler: (n: number) => number = (n => n)): Point[] {
+function ArrayBufferToPointArray(buf: Uint8Array, xScaler: (n: number) => number = noScaler, yScaler: (n: number) => number = noScaler): Point[] {
     return Array.from(buf).map((p, i) => ({ x: xScaler(i), y: yScaler(p) }))
 }
 
@@ -115,8 +129,6 @@ const maxFreqSeries = createSeries(frequencyChart, 'Frequency Max', '#ffff11')
 waveformHistoryChart
     .getDefaultAxisX()
     .setInterval(0, audioCtx.sampleRate * 10)
-
-setInterval(()=>console.log('s'),1000)
 
 // hack
 waveformHistoryChart.getDefaultAxisX().tickStrategy.formatValue = (value: number, range: FormattingRange): string => {
