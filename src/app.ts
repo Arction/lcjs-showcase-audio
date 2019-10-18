@@ -1,5 +1,6 @@
 import { lightningChart, AxisTickStrategies, emptyLine, DataPatterns, point, AxisScrollStrategies, SolidFill, ColorHEX } from "@arction/lcjs"
 import { defaultStyle } from "./chartStyle"
+import './styles/main.scss'
 
 // import { lightningChart, SolidLine, SolidFill, emptyFill, emptyLine, AxisTickStrategies, AutoCursorXYBuilder, AutoCursorBuilders, ColorHEX } from "@arction/lcjs"
 // import { defaultStyle } from "./chartStyle"
@@ -55,7 +56,7 @@ mediaDevices.getUserMedia({ audio: true })
         const analyzer = audioCtx.createAnalyser()
         const src = audioCtx.createMediaStreamSource(stream)
         src.connect(analyzer)
-        analyzer.connect(audioCtx.destination)
+        // analyzer.connect(audioCtx.destination)
         const timeDomainData = new Uint8Array(analyzer.fftSize)
         const frequencyData = new Uint8Array(analyzer.frequencyBinCount)
         const frequencyHistoryData = new Uint8Array(analyzer.frequencyBinCount)

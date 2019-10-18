@@ -1,0 +1,25 @@
+html,
+body {
+  margin: 0;
+  min-height: 100vh;
+  min-width: 100vw;
+}
+
+.container {
+  height: 100%;
+  min-height: 100vh;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+
+  #chart {
+    flex: 1 0 auto;
+    display: flex;
+    height: 100%;
+    width: 100%;
+
+    canvas {
+      height: auto !important;
+    }
+  }
+}
