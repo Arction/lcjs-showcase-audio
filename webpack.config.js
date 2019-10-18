@@ -4,8 +4,8 @@ const path = require('path')
 module.exports = {
     mode: 'development',
     entry: './src/app.ts',
-    module:{
-        rules:[
+    module: {
+        rules: [
             {
                 test: /\.tsx?$/,
                 use: 'ts-loader',
@@ -13,6 +13,7 @@ module.exports = {
             }
         ]
     },
+    devtool: 'eval-source-map',
     devServer: {
         contentBase: path.join(__dirname, 'dist'),
         compress: true
@@ -24,14 +25,15 @@ module.exports = {
         filename: '[name].bundle.js',
         path: path.resolve(__dirname, 'dist')
     },
-    optimization:{
+    optimization: {
         splitChunks: {
             chunks: 'all'
         }
     },
     plugins: [
         new HtmlWebpackPlugin({
-            title: 'lcjs-typescript-example'
+            title: 'lcjs-typescript-example',
+            template: '!!handlebars-loader!src/index.hbs'
         })
     ]
 }
