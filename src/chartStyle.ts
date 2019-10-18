@@ -57,5 +57,9 @@ export const defaultStyle = {
   series: {
     font: new FontSettings({ family: 'monospace' }),
     stroke: new SolidLine({ fillStyle: new SolidFill({ color: ColorHEX('#fff') }), thickness: 1 })
+  },
+  ui: {
+    border: new SolidLine({ fillStyle: new SolidFill({ color: ColorHEX('#ff9511') }) }),
+    fill: new SolidFill({ color: ColorHEX('#ff9511') })
   }
 }

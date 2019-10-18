@@ -1,4 +1,4 @@
-import { lightningChart, AxisTickStrategies, emptyLine, DataPatterns, point, AxisScrollStrategies, SolidFill, ColorHEX } from "@arction/lcjs"
+import { lightningChart, AxisTickStrategies, emptyLine, DataPatterns, point, AxisScrollStrategies, SolidFill, ColorHEX, UIElementBuilders, UIOrigins } from "@arction/lcjs"
 import { defaultStyle } from "./chartStyle"
 import './styles/main.scss'
 
@@ -60,12 +60,21 @@ mediaDevices.getUserMedia({ audio: true })
         const timeDomainData = new Uint8Array(analyzer.fftSize)
         const frequencyData = new Uint8Array(analyzer.frequencyBinCount)
         const frequencyHistoryData = new Uint8Array(analyzer.frequencyBinCount)
+        const frequencyMaxHistoryData = new Uint8Array(analyzer.frequencyBinCount)
         analyzer.getByteTimeDomainData(timeDomainData)
         analyzer.getByteFrequencyData(frequencyData)
         timeDomainSeries.setMaxPointCount(10 * 1000)
         frequencyChart.getDefaultAxisX().setInterval(0, analyzer.frequencyBinCount)
         timeDomainChart.getDefaultAxisX().setInterval(0, analyzer.fftSize)
 
+        resetHistoryMaxButton.onMouseClick(() => {
+            for (let i = 0; i < frequencyMaxHistoryData.byteLength; i++) {
+                frequencyMaxHistoryData[i] = 0
+            }
+        })
+
+        let maxFreqHistChanged = false
+        let maxFreqTemp = 0
         function update() {
             analyzer.getByteTimeDomainData(timeDomainData)
             analyzer.getByteFrequencyData(frequencyData)
@@ -75,9 +84,19 @@ mediaDevices.getUserMedia({ audio: true })
             frequencySeries.add(Array.from(frequencyData).map((p, i) => ({ x: i, y: p })))
             for (let i = 0; i < frequencyHistoryData.byteLength; i++) {
                 frequencyHistoryData[i] = Math.max(Math.max(frequencyData[i], frequencyHistoryData[i] - 1), 0)
+                maxFreqTemp = Math.max(Math.max(frequencyData[i], frequencyMaxHistoryData[i]), 0)
+                if (maxFreqTemp > frequencyMaxHistoryData[i]) {
+                    maxFreqHistChanged = true
+                    frequencyMaxHistoryData[i] = maxFreqTemp
+                }
             }
             historySeries.clear()
             historySeries.add(Array.from(frequencyHistoryData).map((p, i) => ({ x: i, y: p })))
+            if (maxFreqHistChanged) {
+                maxFreqSeries.clear()
+                maxFreqSeries.add(Array.from(frequencyMaxHistoryData).map((p, i) => ({ x: i, y: p })))
+                maxFreqHistChanged = false
+            }
             window.requestAnimationFrame(update)
         }
 
@@ -168,12 +187,32 @@ frequencyChart.getDefaultAxisY()
     .setTitleFillStyle(defaultStyle.titleFill)
     .setTitleFont(defaultStyle.titleFont.setSize(14))
 
+const resetHistoryMaxButton = frequencyChart
+    .addUIElement(UIElementBuilders.ButtonBox.addStyler(styler => styler
+        .setButtonOffFillStyle(defaultStyle.backgroundFill)
+        .setButtonOffStrokeStyle(defaultStyle.ui.border)
+        .setButtonOnFillStyle(defaultStyle.ui.fill)
+    ))
+    .setText('Reset Frequency Max')
+    .setOrigin(UIOrigins.LeftTop)
+    .setPosition({ x: 0, y: 100 })
+    .setFont(defaultStyle.titleFont.setSize(14))
+    .setTextFillStyle(defaultStyle.titleFill)
+
 const frequencySeries = frequencyChart.addLineSeries({
     dataPattern: DataPatterns.horizontalProgressive
 })
     .setStrokeStyle(defaultStyle.series.stroke)
+    .setName('Frequency')
 
 const historySeries = frequencyChart.addLineSeries({
     dataPattern: DataPatterns.horizontalProgressive
 })
     .setStrokeStyle(defaultStyle.series.stroke.setFillStyle(new SolidFill({ color: ColorHEX('#ff9511') })))
+    .setName('Frequency Short History')
+
+const maxFreqSeries = frequencyChart.addLineSeries({
+    dataPattern: DataPatterns.horizontalProgressive
+})
+    .setStrokeStyle(defaultStyle.series.stroke.setFillStyle(new SolidFill({ color: ColorHEX('#ffff11') })))
+    .setName('Frequency Max')
