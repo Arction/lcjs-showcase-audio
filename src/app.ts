@@ -24,8 +24,8 @@ interface Point {
     y: number
 }
 
-function ArrayBufferToPointArray(buf: Uint8Array, xMultiplier: number = 1): Point[] {
-    return Array.from(buf).map((p, i) => ({ x: i * xMultiplier, y: p }))
+function ArrayBufferToPointArray(buf: Uint8Array, xMultiplier: number = 1, yScaler: (n: number) => number = (n => n)): Point[] {
+    return Array.from(buf).map((p, i) => ({ x: i * xMultiplier, y: yScaler(p) }))
 }
 
 let maxFreqHistChanged = false
@@ -49,7 +49,7 @@ const timeDomainChart = createChart(db, 0, 'Time Domain', 'Sample', 'Value')
 
 const timeDomainSeries = createSeries(timeDomainChart, 'Time Domain', '#fff')
 
-const frequencyChart = createChart(db, 1, 'Frequency', 'Frequency (Hz)', 'Value')
+const frequencyChart = createChart(db, 1, 'Spectrum', 'Frequency (Hz)', 'dB')
 
 function createSeries(chart: ChartXY, name: string, color: string): LineSeries {
     return chart.addLineSeries({
@@ -191,6 +191,7 @@ async function listenToFile(url): Promise<() => void> {
 
 timeDomainChart.getDefaultAxisX().setInterval(0, analyzer.fftSize)
 frequencyChart.getDefaultAxisX().setInterval(0, audioCtx.sampleRate / analyzer.fftSize * analyzer.frequencyBinCount)
+frequencyChart.getDefaultAxisY().setInterval(analyzer.minDecibels, analyzer.maxDecibels)
 
 resetHistoryMaxButton.onMouseClick(() => {
     for (let i = 0; i < frequencyMaxHistoryData.byteLength; i++) {
@@ -199,6 +200,9 @@ resetHistoryMaxButton.onMouseClick(() => {
     maxFreqSeries.clear()
     maxFreqSeries.add(ArrayBufferToPointArray(frequencyMaxHistoryData))
 })
+
+const dbScaler = (n: number): number =>
+    ((Math.min(255, Math.max(0, n)) - 0) * (analyzer.maxDecibels - analyzer.minDecibels) / (255 - 0) + analyzer.minDecibels);
 
 let lastUpdate: number = 0
 let delta: number
@@ -210,7 +214,7 @@ function update(ts: number) {
     timeDomainSeries.clear()
     timeDomainSeries.add(ArrayBufferToPointArray(timeDomainData))
     frequencySeries.clear()
-    frequencySeries.add(ArrayBufferToPointArray(frequencyData, audioCtx.sampleRate / analyzer.fftSize))
+    frequencySeries.add(ArrayBufferToPointArray(frequencyData, audioCtx.sampleRate / analyzer.fftSize, dbScaler))
     for (let i = 0; i < frequencyHistoryData.length; i++) {
         frequencyHistoryData[i].y = Math.max(Math.max(frequencyData[i], frequencyHistoryData[i].y - 25 / 1000 * delta), 0)
         maxFreqTemp = Math.max(Math.max(frequencyData[i], frequencyMaxHistoryData[i]), 0)
@@ -220,10 +224,10 @@ function update(ts: number) {
         }
     }
     historySeries.clear()
-    historySeries.add(frequencyHistoryData.map((p, i) => ({ x: p.x * audioCtx.sampleRate / analyzer.fftSize, y: p.y })))
+    historySeries.add(frequencyHistoryData.map((p, i) => ({ x: p.x * audioCtx.sampleRate / analyzer.fftSize, y: dbScaler(p.y) })))
     if (maxFreqHistChanged) {
         maxFreqSeries.clear()
-        maxFreqSeries.add(ArrayBufferToPointArray(frequencyMaxHistoryData, audioCtx.sampleRate / analyzer.fftSize))
+        maxFreqSeries.add(ArrayBufferToPointArray(frequencyMaxHistoryData, audioCtx.sampleRate / analyzer.fftSize, dbScaler))
         maxFreqHistChanged = false
     }
     window.requestAnimationFrame(update)
