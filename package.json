@@ -7,6 +7,14 @@
     "build": "webpack --mode production"
   },
   "author": "Ilkka Kuosmanen <dev.snekw@gmail.com> (https://snekw.com)",
+  "bugs": {
+    "url": "https://gitlab.com/Snekw/sound/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://gitlab.com/Snekw/sound.git"
+  },
+  "homepage": "https://gitlab.com/Snekw/sound",
   "license": "MIT",
   "devDependencies": {
     "copy-webpack-plugin": "^5.0.4",

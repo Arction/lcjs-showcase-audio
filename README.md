@@ -2,4 +2,4 @@
 
 Audio visualization.
 
-![Screenshot](https://fun.snekw.com/sound/sc.png)
+![Screenshot](sc.png)
