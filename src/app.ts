@@ -13,7 +13,9 @@ import {
     DashboardBasicOptions,
     FormattingRange,
     AutoCursorModes,
-    Themes
+    Themes,
+    Point,
+    MPoint
 } from "@arction/lcjs"
 import { defaultStyle } from "./chartStyle"
 import './styles/main.scss'
@@ -51,10 +53,7 @@ const frequencyHistoryData = new Uint8Array(analyzer.frequencyBinCount)
 const frequencyHistoryDataPoints = Array.from<Point>(Array(analyzer.frequencyBinCount)).map((_, i) => ({ x: (audioCtx.sampleRate / analyzer.fftSize * i), y: 0 }))
 const frequencyMaxHistoryData = new Uint8Array(analyzer.frequencyBinCount)
 const frequencyMaxHistoryDataPoints = Array.from<Point>(Array(analyzer.frequencyBinCount)).map((_, i) => ({ x: (audioCtx.sampleRate / analyzer.fftSize * i), y: 0 }))
-interface Point {
-    x: number,
-    y: number
-}
+
 
 function ArrayBufferToPointArray(buf: Uint8Array, xScaler: (n: number) => number = noScaler, yScaler: (n: number) => number = noScaler): Point[] {
     return Array.from(buf).map((p, i) => ({ x: xScaler(i), y: yScaler(p) }))
@@ -166,7 +165,7 @@ waveformSeries
     .setMaxPointCount(1000 * 1000)
     .setCursorInterpolationEnabled(false)
 
-function updatePoints(arr: Point[], buf: Uint8Array, xScaler: (n: number) => number = noScaler, yScaler: (n: number) => number = noScaler): void {
+function updatePoints(arr: MPoint[], buf: Uint8Array, xScaler: (n: number) => number = noScaler, yScaler: (n: number) => number = noScaler): void {
     arr.forEach((p, i) => {
         p.y = yScaler(buf[i])
         p.x = xScaler(i)
