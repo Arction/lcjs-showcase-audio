@@ -28,12 +28,11 @@ let src: SrcOption = SrcOption.mic
 
 setupSourceLabels()
 
-const play = () => {
-    // TODO: restart streams
-    return audioCtx.resume()
+const play = async () => {
+    await audioCtx.resume()
 }
 
-const pause = () => {
+const pause = async () => {
     return audioCtx.suspend()
 }
 
@@ -44,7 +43,6 @@ const resumeElement = document.getElementById('resume')
 const mediaDevices = navigator.mediaDevices
 const audioCtx = new AudioContext()
 const analyzer = audioCtx.createAnalyser()
-
 // handle cases where the audio context was created in suspended state
 if (audioCtx.state === 'suspended') {
     resumeElement.addEventListener('click', () => {
@@ -182,9 +180,9 @@ function updatePoints(arr: MPoint[], buf: Uint8Array, xScaler: Scaler = noScaler
 }
 const timeDomainData = new Uint8Array(analyzer.fftSize)
 const timeDomainPoints = Array.from<Point>(Array(timeDomainData.byteLength)).map((_, i) => ({ x: i, y: 0 }))
-const processor = audioCtx.createScriptProcessor(analyzer.fftSize)
+const processor = audioCtx.createScriptProcessor(analyzer.fftSize, 1, 1)
 let lastTime = 0
-processor.onaudioprocess = () => {
+processor.onaudioprocess = (audioProcessingEvent: AudioProcessingEvent) => {
     analyzer.getByteTimeDomainData(timeDomainData)
     analyzer.getByteFrequencyData(frequencyData)
     updatePoints(frequencyDataPoints, frequencyData, multiplierScaler(audioCtx.sampleRate / analyzer.fftSize), dbScaler(analyzer))
@@ -200,9 +198,14 @@ processor.onaudioprocess = () => {
     const waveData = ArrayBufferToPointArray(timeDomainData, offSetScaler(lastTime), freqScaler)
     waveformSeries.add(waveData)
     lastTime += waveData.length
+    audioProcessingEvent.outputBuffer.copyToChannel(audioProcessingEvent.inputBuffer.getChannelData(0), 0)
 }
 
 processor.connect(analyzer)
+const gain = audioCtx.createGain()
+gain.gain.setValueAtTime(0, audioCtx.currentTime)
+analyzer.connect(gain)
+gain.connect(audioCtx.destination)
 
 const srcSelector = document.getElementById('src-selector') as HTMLSelectElement
 
@@ -249,22 +252,24 @@ srcSelector.addEventListener('change', updateSource)
 updateSource()
 const listenElement = document.getElementById('listen') as HTMLInputElement
 
-listenElement.addEventListener('change', () => {
+const updateListenState = () => {
     listen = listenElement.checked
 
     if (listen) {
-        analyzer.connect(audioCtx.destination)
+        gain.gain.setValueAtTime(1, audioCtx.currentTime)
     } else {
-        analyzer.disconnect(audioCtx.destination)
+        gain.gain.setValueAtTime(0, audioCtx.currentTime)
     }
-})
+}
+
+listenElement.addEventListener('change', updateListenState)
 
 async function listenMic(): Promise<() => void> {
     return mediaDevices.getUserMedia({ audio: true })
         .then(stream => {
             const src = audioCtx.createMediaStreamSource(stream)
-            src.connect(analyzer)
-            return src.disconnect.bind(src, analyzer)
+            src.connect(processor)
+            return src.disconnect.bind(src, processor)
         })
 }
 
@@ -273,13 +278,13 @@ async function listenToFile(url): Promise<() => void> {
         .then(d => {
             const src = audioCtx.createBufferSource()
             src.buffer = d
-            src.connect(analyzer)
+            src.connect(processor)
             src.start(0)
             src.loop = true
             return () => {
                 src.loop = false
                 src.stop()
-                src.disconnect(analyzer)
+                src.disconnect(processor)
             }
         })
 }
