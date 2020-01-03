@@ -12,7 +12,8 @@ import {
     Dashboard,
     DashboardBasicOptions,
     FormattingRange,
-    AutoCursorModes
+    AutoCursorModes,
+    Themes
 } from "@arction/lcjs"
 import { defaultStyle } from "./chartStyle"
 import './styles/main.scss'
@@ -52,12 +53,14 @@ const lc = lightningChart()
 const db = lc.Dashboard({
     containerId: 'chart',
     numberOfColumns: 1,
-    numberOfRows: 4
+    numberOfRows: 4,
+    theme: Themes.dark
 })
 
 db
     .setBackgroundFillStyle(defaultStyle.backgroundFill)
     .setBackgroundStrokeStyle(defaultStyle.backgroundStroke)
+    .setSplitterStyle(defaultStyle.splitterStyle)
 
 const timeDomainChart = createChart(db, { columnIndex: 0, columnSpan: 1, rowIndex: 0, rowSpan: 1 }, 'Time Domain', 'Sample', 'Amplitude', [-1, 1])
 const waveformHistoryChart = createChart(db, { columnIndex: 0, columnSpan: 1, rowIndex: 1, rowSpan: 1 }, 'Waveform history', 'Time (s)', 'Amplitude', [-1, 1])

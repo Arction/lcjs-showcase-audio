@@ -1,4 +1,4 @@
-import { SolidFill, ColorHEX, SolidLine, FontSettings, VisibleTicks, AutoCursorBuilders, PointMarkers, UIBackgrounds, emptyLine } from "@arction/lcjs"
+import { SolidFill, ColorHEX, SolidLine, FontSettings, VisibleTicks, AutoCursorBuilders, PointMarkers, UIBackgrounds, emptyLine, colorPoint, FilledShape } from "@arction/lcjs"
 
 export const defaultStyle = {
   autoCursor: AutoCursorBuilders.XY
@@ -51,7 +51,8 @@ export const defaultStyle = {
       labelFillStyle: new SolidFill({ color: ColorHEX('#000') }),
       labelFont: new FontSettings({ family: 'monospace', size: 14, weight: 500 }),
       labelPadding: 0,
-      tickStyle: new SolidLine({ fillStyle: new SolidFill({ color: ColorHEX('#222') }), thickness: 2 })
+      tickStyle: new SolidLine({ fillStyle: new SolidFill({ color: ColorHEX('#222') }), thickness: 2 }),
+      gridStrokeStyle: new SolidLine({fillStyle: new SolidFill({color:ColorHEX('#444')})})
     })
   },
   series: {
@@ -61,5 +62,6 @@ export const defaultStyle = {
   ui: {
     border: new SolidLine({ fillStyle: new SolidFill({ color: ColorHEX('#ff9511') }) }),
     fill: new SolidFill({ color: ColorHEX('#ff9511') })
-  }
+  },
+  splitterStyle: new SolidLine({ thickness: 10, fillStyle: new SolidFill({ color: ColorHEX('#b0b0b0') }) })
 }
