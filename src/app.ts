@@ -22,31 +22,24 @@ import './styles/main.scss'
 import { SrcOption, setupSourceLabels, sourceAudioFiles, loadAudioFile } from "./audioSources"
 import { setupPlayPause } from "./controls"
 import { noScaler, multiplierScaler, dbScaler, freqScaler, offSetScaler, Scaler } from "./utils"
+import { AudioVisualizer } from "./audioVisualizer"
 
-let listen = false
 let src: SrcOption = SrcOption.mic
 
 setupSourceLabels()
 
-const play = async () => {
-    await audioCtx.resume()
-}
+const audioVisualizer = new AudioVisualizer()
 
-const pause = async () => {
-    return audioCtx.suspend()
-}
+setupPlayPause(audioVisualizer.play.bind(audioVisualizer), audioVisualizer.pause.bind(audioVisualizer))
 
-setupPlayPause(play, pause)
-
-const resumeElement = document.getElementById('resume')
-
-const mediaDevices = navigator.mediaDevices
 const audioCtx = new AudioContext()
 const analyzer = audioCtx.createAnalyser()
+
 // handle cases where the audio context was created in suspended state
+const resumeElement = document.getElementById('resume')
 if (audioCtx.state === 'suspended') {
     resumeElement.addEventListener('click', () => {
-        audioCtx.resume()
+        audioVisualizer.play()
             .then(() => {
                 resumeElement.hidden = true
             })
@@ -201,11 +194,14 @@ processor.onaudioprocess = (audioProcessingEvent: AudioProcessingEvent) => {
     audioProcessingEvent.outputBuffer.copyToChannel(audioProcessingEvent.inputBuffer.getChannelData(0), 0)
 }
 
-processor.connect(analyzer)
 const gain = audioCtx.createGain()
 gain.gain.setValueAtTime(0, audioCtx.currentTime)
-analyzer.connect(gain)
-gain.connect(audioCtx.destination)
+
+// source -> processor -> analyzer -> gain -> destination
+
+// processor.connect(analyzer)
+// analyzer.connect(gain)
+// gain.connect(audioCtx.destination)
 
 const srcSelector = document.getElementById('src-selector') as HTMLSelectElement
 
@@ -218,7 +214,6 @@ async function getAudioFileUrl(): Promise<string> {
     })
 }
 
-let disconnect: () => void
 const updateSource = async () => {
     const selectedOptionElement = srcSelector[srcSelector.selectedIndex] as HTMLOptionElement
     src = selectedOptionElement.value as SrcOption
@@ -229,64 +224,52 @@ const updateSource = async () => {
         ai.style.display = 'none'
         ai.value = ''
     }
-    if (disconnect) {
-        disconnect()
-        disconnect = null
-    }
+    await audioVisualizer.pause()
     switch (src) {
         case SrcOption.mic:
-            disconnect = await listenMic()
+            await listenMic()
             break
         case SrcOption.file:
-            disconnect = await listenToFile(await getAudioFileUrl())
+            await listenToFileURL(await getAudioFileUrl())
             break
         case SrcOption.truck:
-            disconnect = await listenToFile(sourceAudioFiles.truck)
+            await listenToFileURL(sourceAudioFiles.truck)
             break
         case SrcOption.f500_1000_1000:
-            disconnect = await listenToFile(sourceAudioFiles.f500_1000_1000)
+            await listenToFileURL(sourceAudioFiles.f500_1000_1000)
             break
     }
+    await audioVisualizer.play()
 }
 srcSelector.addEventListener('change', updateSource)
 updateSource()
 const listenElement = document.getElementById('listen') as HTMLInputElement
 
 const updateListenState = () => {
-    listen = listenElement.checked
-
-    if (listen) {
-        gain.gain.setValueAtTime(1, audioCtx.currentTime)
+    if (listenElement.checked) {
+        audioVisualizer.setGain(1)
     } else {
-        gain.gain.setValueAtTime(0, audioCtx.currentTime)
+        audioVisualizer.setGain(0)
     }
 }
 
 listenElement.addEventListener('change', updateListenState)
 
-async function listenMic(): Promise<() => void> {
-    return mediaDevices.getUserMedia({ audio: true })
-        .then(stream => {
-            const src = audioCtx.createMediaStreamSource(stream)
-            src.connect(processor)
-            return src.disconnect.bind(src, processor)
-        })
+/**
+ * Listen to microphone
+ */
+async function listenMic(): Promise<void> {
+    const src = await audioVisualizer.createMicSource()
+    audioVisualizer.setSource(src)
 }
 
-async function listenToFile(url): Promise<() => void> {
-    return loadAudioFile(url, audioCtx)
-        .then(d => {
-            const src = audioCtx.createBufferSource()
-            src.buffer = d
-            src.connect(processor)
-            src.start(0)
-            src.loop = true
-            return () => {
-                src.loop = false
-                src.stop()
-                src.disconnect(processor)
-            }
-        })
+/**
+ * Listen to a file from a url
+ * @param url URL of the file
+ */
+async function listenToFileURL(url): Promise<void> {
+    const src = await audioVisualizer.createUrlSource(url)
+    audioVisualizer.setSource(src)
 }
 
 timeDomainChart.getDefaultAxisX().setInterval(0, analyzer.fftSize)

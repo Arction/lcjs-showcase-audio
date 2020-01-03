@@ -6,7 +6,7 @@ export enum SrcOption {
     mic = 'mic',
     file = 'file',
     truck = 'truck',
-    f500_1000_1000 = '500_1000_1000'
+    f500_1000_1000 = 'f500_1000_1000'
 }
 
 const srcLabels: { [key in keyof typeof SrcOption]: string } = {
