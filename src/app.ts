@@ -28,10 +28,22 @@ const truckSrcUrl = 'Truck_driving_by-Jason_Baker-2112866529.wav'
 const f500_1000_1000_url = '500_1000_10000.wav'
 let listen = false
 let src: SrcOption = SrcOption.mic
+const resumeElement = document.getElementById('resume')
 
 const mediaDevices = navigator.mediaDevices
 const audioCtx = new AudioContext()
 const analyzer = audioCtx.createAnalyser()
+
+// handle cases where the audio context was created in suspended state
+if (audioCtx.state === 'suspended') {
+    resumeElement.addEventListener('click', () => {
+        audioCtx.resume()
+            .then(() => {
+                resumeElement.hidden = true
+            })
+    })
+    resumeElement.hidden = false
+}
 
 const frequencyData = new Uint8Array(analyzer.frequencyBinCount)
 const frequencyDataPoints = Array.from<Point>(Array(analyzer.frequencyBinCount)).map((_, i) => ({ x: (audioCtx.sampleRate / analyzer.fftSize * i), y: 0 }))
