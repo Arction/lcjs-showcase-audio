@@ -5,24 +5,25 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
   <title>Sound</title>
 </head>
 
 <body>
   <div class="container">
-    <div id="resume" hidden><img src="play_circle_outline-24px.svg"/></div>
+    <div id="resume" hidden><img src="play_circle_outline-24px.svg" /></div>
     <div>
       <select id="src-selector">
-        <option value="truck">Truck Driving</option>
-        <option value="mic">Microphone</option>
-        <option value="file">Audio File</option>
-        <option value="500_1000_1000">500Hz, 1kHz and 10kHz signals</option>
       </select>
       <label for="listen">Listen to the audio:</label>
-      <input type="checkbox" id="listen" name="listen"/>
+      <input type="checkbox" id="listen" name="listen" />
       <div id="audio-input" style="display: none;">
         <label for="audio-file-url">Audio File URL:</label>
-        <input type="url" id='audio-file' name="audio-file-url"/>
+        <input type="url" id='audio-file' name="audio-file-url" />
+      </div>
+      <div id="play-pause">
+        <button id="play" hidden><i class="material-icons">play_arrow</i></button>
+        <button id="pause"><i class="material-icons">pause</i></button>
       </div>
     </div>
     <div id='chart'></div>

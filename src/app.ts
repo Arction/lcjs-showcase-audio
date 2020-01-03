@@ -19,17 +19,26 @@ import {
 } from "@arction/lcjs"
 import { defaultStyle } from "./chartStyle"
 import './styles/main.scss'
+import { SrcOption, setupSourceLabels, sourceAudioFiles, loadAudioFile } from "./audioSources"
+import { setupPlayPause } from "./controls"
+import { noScaler, multiplierScaler, dbScaler, freqScaler, offSetScaler, Scaler } from "./utils"
 
-enum SrcOption {
-    mic = 'mic',
-    file = 'file',
-    truck = 'truck',
-    f500_1000_1000 = '500_1000_1000'
-}
-const truckSrcUrl = 'Truck_driving_by-Jason_Baker-2112866529.wav'
-const f500_1000_1000_url = '500_1000_10000.wav'
 let listen = false
 let src: SrcOption = SrcOption.mic
+
+setupSourceLabels()
+
+const play = () => {
+    // TODO: restart streams
+    return audioCtx.resume()
+}
+
+const pause = () => {
+    return audioCtx.suspend()
+}
+
+setupPlayPause(play, pause)
+
 const resumeElement = document.getElementById('resume')
 
 const mediaDevices = navigator.mediaDevices
@@ -165,7 +174,7 @@ waveformSeries
     .setMaxPointCount(1000 * 1000)
     .setCursorInterpolationEnabled(false)
 
-function updatePoints(arr: MPoint[], buf: Uint8Array, xScaler: (n: number) => number = noScaler, yScaler: (n: number) => number = noScaler): void {
+function updatePoints(arr: MPoint[], buf: Uint8Array, xScaler: Scaler = noScaler, yScaler: Scaler = noScaler): void {
     arr.forEach((p, i) => {
         p.y = yScaler(buf[i])
         p.x = xScaler(i)
@@ -178,17 +187,17 @@ let lastTime = 0
 processor.onaudioprocess = () => {
     analyzer.getByteTimeDomainData(timeDomainData)
     analyzer.getByteFrequencyData(frequencyData)
-    updatePoints(frequencyDataPoints, frequencyData, multiplierScaler(audioCtx.sampleRate / analyzer.fftSize), dbScaler)
-    updatePoints(frequencyHistoryDataPoints, frequencyHistoryData, multiplierScaler(audioCtx.sampleRate / analyzer.fftSize), dbScaler)
+    updatePoints(frequencyDataPoints, frequencyData, multiplierScaler(audioCtx.sampleRate / analyzer.fftSize), dbScaler(analyzer))
+    updatePoints(frequencyHistoryDataPoints, frequencyHistoryData, multiplierScaler(audioCtx.sampleRate / analyzer.fftSize), dbScaler(analyzer))
     for (let i = 0; i < frequencyHistoryData.length; i++) {
         frequencyHistoryData[i] = Math.max(Math.max(frequencyData[i], frequencyHistoryData[i] - 25 / 1000), 0)
         frequencyMaxHistoryData[i] = Math.max(Math.max(frequencyData[i], frequencyMaxHistoryData[i]), 0)
     }
-    updatePoints(frequencyMaxHistoryDataPoints, frequencyMaxHistoryData, multiplierScaler(audioCtx.sampleRate / analyzer.fftSize), dbScaler)
+    updatePoints(frequencyMaxHistoryDataPoints, frequencyMaxHistoryData, multiplierScaler(audioCtx.sampleRate / analyzer.fftSize), dbScaler(analyzer))
     updatePoints(timeDomainPoints, timeDomainData, noScaler, freqScaler)
     timeDomainSeries.clear()
     timeDomainSeries.add(timeDomainPoints)
-    const waveData = ArrayBufferToPointArray(timeDomainData, offSetScaler, freqScaler)
+    const waveData = ArrayBufferToPointArray(timeDomainData, offSetScaler(lastTime), freqScaler)
     waveformSeries.add(waveData)
     lastTime += waveData.length
 }
@@ -229,10 +238,10 @@ const updateSource = async () => {
             disconnect = await listenToFile(await getAudioFileUrl())
             break
         case SrcOption.truck:
-            disconnect = await listenToFile(truckSrcUrl)
+            disconnect = await listenToFile(sourceAudioFiles.truck)
             break
         case SrcOption.f500_1000_1000:
-            disconnect = await listenToFile(f500_1000_1000_url)
+            disconnect = await listenToFile(sourceAudioFiles.f500_1000_1000)
             break
     }
 }
@@ -260,9 +269,7 @@ async function listenMic(): Promise<() => void> {
 }
 
 async function listenToFile(url): Promise<() => void> {
-    return fetch(url)
-        .then(d => d.arrayBuffer())
-        .then(d => audioCtx.decodeAudioData(d))
+    return loadAudioFile(url, audioCtx)
         .then(d => {
             const src = audioCtx.createBufferSource()
             src.buffer = d
@@ -288,20 +295,6 @@ resetHistoryMaxButton.onMouseClick(() => {
     maxFreqSeries.clear()
     maxFreqSeries.add(ArrayBufferToPointArray(frequencyMaxHistoryData))
 })
-
-const scaleToRange = (val: number, origRange: [number, number], newRange: [number, number]): number =>
-    (val - origRange[0]) * (newRange[1] - newRange[0]) / (origRange[1] - origRange[0]) + newRange[0]
-
-
-const dbScaler = (n: number): number => scaleToRange(n, [0, 256], [analyzer.minDecibels, analyzer.maxDecibels])
-
-const freqScaler = (n: number): number => scaleToRange(n, [0, 256], [-1, 1])
-
-const noScaler = (n) => n
-
-const offSetScaler = (n) => n + lastTime
-
-const multiplierScaler = (multiplier) => (n) => n * multiplier
 
 function update() {
     frequencySeries.clear()
