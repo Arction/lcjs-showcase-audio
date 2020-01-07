@@ -2,8 +2,8 @@ export const setupPlayPause = (onPlay, onPause) => {
     const play = document.getElementById('play')
     play.addEventListener('click', async () => {
         await onPlay()
-        pause.hidden = false
         play.hidden = true
+        pause.hidden = false
     })
 
     const pause = document.getElementById('pause')
