@@ -30,18 +30,16 @@ if (audioVisualizer.getState() === 'suspended') {
 }
 
 const srcSelector = document.getElementById('src-selector') as HTMLSelectElement
+const audioFileUrlPlay = document.getElementById('load-url') as HTMLButtonElement
+const audioFileUrl = document.getElementById('audio-file') as HTMLInputElement
 
 /**
- * Get audio file URL from the input box
+ * Audio file from url play
  */
-async function getAudioFileUrl(): Promise<string> {
-    return new Promise((resolve) => {
-        const el = document.getElementById('audio-file') as HTMLInputElement
-        el.addEventListener('change', () => {
-            resolve(el.value)
-        })
-    })
-}
+audioFileUrlPlay.addEventListener('click', async () => {
+    await listenToFileURL(audioFileUrl.value)
+    await audioVisualizer.play()
+})
 
 /**
  * Update the current visualizer source
@@ -60,18 +58,20 @@ const updateSource = async () => {
     switch (src) {
         case SrcOption.mic:
             await listenMic()
+            await audioVisualizer.play()
             break
         case SrcOption.file:
-            await listenToFileURL(await getAudioFileUrl())
+            audioVisualizer.setSource(undefined)
             break
         case SrcOption.truck:
             await listenToFileURL(sourceAudioFiles.truck)
+            await audioVisualizer.play()
             break
         case SrcOption.f500_1000_1000:
             await listenToFileURL(sourceAudioFiles.f500_1000_1000)
+            await audioVisualizer.play()
             break
     }
-    await audioVisualizer.play()
 }
 srcSelector.addEventListener('change', updateSource)
 updateSource()

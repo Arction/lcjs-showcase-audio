@@ -395,12 +395,13 @@ export class AudioVisualizer {
      * Set audio visualizer source
      * @param source Source
      */
-    public setSource(source: AudioNode) {
+    public setSource(source?: AudioNode) {
         if (this._source) {
             this._source.disconnect(this._audioNodes.analyzer)
         }
         this._source = source
-        this._source.connect(this._audioNodes.analyzer)
+        if (this._source)
+            this._source.connect(this._audioNodes.analyzer)
     }
 
     /**
