@@ -1,5 +1,5 @@
 import './styles/main.scss'
-import { SrcOption, setupSourceLabels, sourceAudioFiles, loadAudioFile } from "./audioSources"
+import { SrcOption, setupSourceLabels, sourceAudioFiles } from "./audioSources"
 import { setupPlayPause } from "./controls"
 import { AudioVisualizer } from "./audioVisualizer"
 
