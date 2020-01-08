@@ -17,18 +17,6 @@ const audioVisualizer = new AudioVisualizer()
 // attach the play and pause buttons to the audioVisualizer play and pause methods
 setupPlayPause(audioVisualizer.play.bind(audioVisualizer), audioVisualizer.pause.bind(audioVisualizer))
 
-// handle cases where the audio context was created in suspended state
-const resumeElement = document.getElementById('resume')
-if (audioVisualizer.getState() === 'suspended') {
-    resumeElement.addEventListener('click', () => {
-        audioVisualizer.play()
-            .then(() => {
-                resumeElement.hidden = true
-            })
-    })
-    resumeElement.hidden = false
-}
-
 const srcSelector = document.getElementById('src-selector') as HTMLSelectElement
 const audioFileUrlPlay = document.getElementById('load-url') as HTMLButtonElement
 const audioFileUrl = document.getElementById('audio-file') as HTMLInputElement
@@ -117,3 +105,18 @@ function update() {
 
 window.requestAnimationFrame(update)
 
+// hide the play button if it's not needed
+audioVisualizer.getContext().addEventListener('statechange', () => {
+    if (!resumeElement.hidden && audioVisualizer.getState() !== 'suspended') {
+        resumeElement.hidden = true
+    }
+})
+
+// handle cases where the audio context was created in suspended state
+const resumeElement = document.getElementById('resume')
+resumeElement.addEventListener('click', () => {
+    audioVisualizer.play()
+})
+if (audioVisualizer.getState() === 'suspended') {
+    resumeElement.hidden = false
+}
