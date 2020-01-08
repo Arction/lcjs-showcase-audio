@@ -3,12 +3,18 @@ import { SrcOption, setupSourceLabels, sourceAudioFiles, loadAudioFile } from ".
 import { setupPlayPause } from "./controls"
 import { AudioVisualizer } from "./audioVisualizer"
 
+/**
+ * Current Audio source
+ */
 let src: SrcOption = SrcOption.mic
 
+// setup the source selector
 setupSourceLabels()
 
+// create a new instance of the AudioVisualizer class, this handles all of the actual visualization work
 const audioVisualizer = new AudioVisualizer()
 
+// attach the play and pause buttons to the audioVisualizer play and pause methods
 setupPlayPause(audioVisualizer.play.bind(audioVisualizer), audioVisualizer.pause.bind(audioVisualizer))
 
 // handle cases where the audio context was created in suspended state
@@ -25,6 +31,9 @@ if (audioVisualizer.getState() === 'suspended') {
 
 const srcSelector = document.getElementById('src-selector') as HTMLSelectElement
 
+/**
+ * Get audio file URL from the input box
+ */
 async function getAudioFileUrl(): Promise<string> {
     return new Promise((resolve) => {
         const el = document.getElementById('audio-file') as HTMLInputElement
@@ -34,6 +43,9 @@ async function getAudioFileUrl(): Promise<string> {
     })
 }
 
+/**
+ * Update the current visualizer source
+ */
 const updateSource = async () => {
     const selectedOptionElement = srcSelector[srcSelector.selectedIndex] as HTMLOptionElement
     src = selectedOptionElement.value as SrcOption
@@ -65,6 +77,9 @@ srcSelector.addEventListener('change', updateSource)
 updateSource()
 const listenElement = document.getElementById('listen') as HTMLInputElement
 
+/**
+ * Mute/unmute audio output based on the selection state
+ */
 const updateListenState = () => {
     if (listenElement.checked) {
         audioVisualizer.setGain(1)
@@ -92,6 +107,9 @@ async function listenToFileURL(url): Promise<void> {
     audioVisualizer.setSource(src)
 }
 
+/**
+ * Update with a requestAnimationFrame loop
+ */
 function update() {
     audioVisualizer.update()
     window.requestAnimationFrame(update)

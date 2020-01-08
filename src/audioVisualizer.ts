@@ -1,26 +1,82 @@
 import { loadAudioFile } from "./audioSources"
-import { Point, MPoint, LineSeries, Line, ChartXY, DashboardBasicOptions, AxisTickStrategies, Dashboard, lightningChart, Themes, DataPatterns, AxisScrollStrategies, FormattingRange, UIElementBuilders, UIObject, UIOrigins, SolidLine, SolidFill, ColorHEX } from "@arction/lcjs"
-import { Scaler, noScaler, multiplierScaler, dbScaler, freqScaler, offSetScaler } from "./utils"
+import {
+    Point,
+    MPoint,
+    LineSeries,
+    ChartXY,
+    DashboardBasicOptions,
+    AxisTickStrategies,
+    Dashboard,
+    lightningChart,
+    Themes,
+    DataPatterns,
+    AxisScrollStrategies,
+    FormattingRange,
+    UIElementBuilders,
+    UIOrigins,
+    SolidLine,
+    SolidFill,
+    ColorHEX
+} from "@arction/lcjs"
+import {
+    Scaler,
+    noScaler,
+    multiplierScaler,
+    dbScaler,
+    freqScaler,
+    offSetScaler
+} from "./utils"
 
+/**
+ * Update points in a given array with new values
+ * @param arr Array of points to update
+ * @param buf Input data buffer
+ * @param xScaler Scaler for the X-values
+ * @param yScaler Scaler for the Y-values
+ */
 function updatePoints(arr: MPoint[], buf: Uint8Array, xScaler: Scaler = noScaler, yScaler: Scaler = noScaler): void {
     arr.forEach((p, i) => {
         p.y = yScaler(buf[i])
         p.x = xScaler(i)
     })
 }
+
+/**
+ * Convert ArrayBuffer to a Point array
+ * @param buf Buffer to convert to point array
+ * @param xScaler Scaler for the X-values
+ * @param yScaler Scaler for the Y-values
+ */
 function ArrayBufferToPointArray(buf: Uint8Array, xScaler: (n: number) => number = noScaler, yScaler: (n: number) => number = noScaler): Point[] {
     return Array.from(buf).map((p, i) => ({ x: xScaler(i), y: yScaler(p) }))
 }
 
+/**
+ * Audio Visualizer
+ * 
+ * Visualizes given Audio source
+ */
 export class AudioVisualizer {
+    /**
+     * Current audio context
+     */
     private _audioCtx: AudioContext
+    /**
+     * All used audio nodes in the audio graph
+     */
     private _audioNodes: {
         analyzer: AnalyserNode,
         processor: ScriptProcessorNode,
         gain: GainNode
     }
+    /**
+     * Current audio source
+     */
     private _source: AudioNode | undefined
 
+    /**
+     * Data buffers
+     */
     private _data: {
         timeDomain: Uint8Array,
         frequency: Uint8Array,
@@ -28,6 +84,9 @@ export class AudioVisualizer {
         maxHistory: Uint8Array
     }
 
+    /**
+     * Point buffers
+     */
     private _points: {
         timeDomain: Point[],
         frequency: Point[],
@@ -35,14 +94,23 @@ export class AudioVisualizer {
         maxHistory: Point[]
     }
 
+    /**
+     * Base dashboard, hosts all charts
+     */
     private _db: Dashboard
 
+    /**
+     * All different charts
+     */
     private _charts: {
         timeDomain: ChartXY,
         waveformHistory: ChartXY,
         frequency: ChartXY
     }
 
+    /**
+     * All different series
+     */
     private _series: {
         timeDomain: LineSeries,
         waveform: LineSeries,
@@ -56,9 +124,13 @@ export class AudioVisualizer {
             cursor: LineSeries
         }
     }
+    /**
+     * The 'time' of the last waveform data input point
+     */
     private _lastTime: number = 0
 
     constructor() {
+        // setup the audio context
         this._audioCtx = new AudioContext()
         this._audioNodes = {
             analyzer: this._audioCtx.createAnalyser(),
@@ -67,7 +139,7 @@ export class AudioVisualizer {
             processor: this._audioCtx.createScriptProcessor(),
             gain: this._audioCtx.createGain()
         }
-        // muted by default
+        // mute audio output by default
         this._audioNodes.gain.gain.setValueAtTime(0, this._audioCtx.currentTime)
 
         // setup audio processor
@@ -84,6 +156,7 @@ export class AudioVisualizer {
                 mScaler,
                 dScaler
             )
+            // update history and max history data
             for (let i = 0; i < this._data.history.length; i++) {
                 this._data.history[i] = Math.max(Math.max(this._data.frequency[i], this._data.history[i] - 25 / 1000), 0)
                 this._data.maxHistory[i] = Math.max(Math.max(this._data.frequency[i], this._data.maxHistory[i]), 0)
@@ -220,6 +293,9 @@ export class AudioVisualizer {
             })
     }
 
+    /**
+     * Create and setup the dashboard
+     */
     private _setupDashboard() {
         this._db = lightningChart().Dashboard({
             containerId: 'chart',
@@ -233,6 +309,14 @@ export class AudioVisualizer {
             }))
     }
 
+    /**
+     * Create and setup a new chart on the dashboard
+     * @param options Dashboard options
+     * @param title Chart title
+     * @param xAxisTitle X-Axis title
+     * @param yAxisTitle Y-Axis title
+     * @param yInterval Y-Axis interval
+     */
     private _setupChart(options: DashboardBasicOptions, title: string, xAxisTitle: string, yAxisTitle: string, yInterval: [number, number]): ChartXY {
         const chart = this._db.createChartXY({
             ...options,
@@ -240,31 +324,28 @@ export class AudioVisualizer {
                 // hack
                 defaultAxisXTickStrategy: Object.assign({}, AxisTickStrategies.Numeric),
                 defaultAxisYTickStrategy: AxisTickStrategies.Numeric,
-                // autoCursorBuilder: defaultStyle.autoCursor
             }
         })
-            // .setBackgroundFillStyle(defaultStyle.backgroundFill)
-            // .setBackgroundStrokeStyle(defaultStyle.backgroundStroke)
             .setTitle(title)
         chart
             .getAxes().forEach(axis => {
-                // axis.setTickStyle(defaultStyle.axis.tick)
             })
         chart.getDefaultAxisX()
-            // .setScrollStrategy(AxisScrollStrategies.progressive)
             .setTitle(xAxisTitle)
-        // .setTitleFillStyle(defaultStyle.titleFill)
-        // .setTitleFont(defaultStyle.titleFont.setSize(14))
 
         chart.getDefaultAxisY()
             .setScrollStrategy(undefined)
             .setInterval(yInterval[0], yInterval[1])
             .setTitle(yAxisTitle)
-        // .setTitleFillStyle(defaultStyle.titleFill)
-        // .setTitleFont(defaultStyle.titleFont.setSize(14))
         return chart
     }
 
+    /**
+     * Create and setup a new series on a chart
+     * @param chart Chart to which the series should be added to
+     * @param name Name of the series
+     * @param color Color of the series line
+     */
     private _setupSeries(chart: ChartXY, name: string, color: string = '#fff'): LineSeries {
         const series = chart.addLineSeries({
             dataPattern: DataPatterns.horizontalProgressive

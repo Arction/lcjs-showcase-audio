@@ -9,6 +9,9 @@ export enum SrcOption {
     f500_1000_1000 = 'f500_1000_1000'
 }
 
+/**
+ * Labels for different source options
+ */
 const srcLabels: { [key in keyof typeof SrcOption]: string } = {
     truck: 'Truck Driving',
     mic: 'Microphone',
