@@ -1,5 +1,5 @@
 {
-  "name": "@snw/sound",
+  "name": "@arction/lcjs-showcase-audio",
   "version": "1.0.0",
   "description": "Audio visualization",
   "scripts": {
@@ -8,13 +8,13 @@
   },
   "author": "Ilkka Kuosmanen <dev.snekw@gmail.com> (https://snekw.com)",
   "bugs": {
-    "url": "https://gitlab.com/Snekw/sound/issues"
+    "url": "https://github.com/Arction/lcjs-showcase-audio/issues"
   },
   "repository": {
     "type": "git",
-    "url": "https://gitlab.com/Snekw/sound.git"
+    "url": "https://github.com/Arction/lcjs-showcase-audio.git"
   },
-  "homepage": "https://gitlab.com/Snekw/sound",
+  "homepage": "https://github.com/Arction/lcjs-showcase-audio",
   "license": "MIT",
   "devDependencies": {
     "copy-webpack-plugin": "^5.1.1",
