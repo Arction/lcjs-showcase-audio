@@ -136,7 +136,7 @@ export class AudioVisualizer {
             analyzer: this._audioCtx.createAnalyser(),
             // the script processor node is deprecated node so it will be removed in future
             // it has been replaced with audio worklet but those have really bad browser support currently
-            processor: this._audioCtx.createScriptProcessor(),
+            processor: this._audioCtx.createScriptProcessor(undefined, 1, 1),
             gain: this._audioCtx.createGain()
         }
         // mute audio output by default
