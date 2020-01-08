@@ -179,7 +179,7 @@ export class AudioVisualizer {
             history: this._setupSeries(this._charts.frequency, 'Frequency Decay', '#0aa'),
             maxFrequency: {
                 display: this._setupSeries(this._charts.frequency, 'Frequency Max', '#aa0'),
-                cursor: this._setupSeries(this._charts.frequency, 'Frequency Max','#0000')
+                cursor: this._setupSeries(this._charts.frequency, 'Frequency Max', '#0000')
             }
         }
 
@@ -227,6 +227,10 @@ export class AudioVisualizer {
             numberOfRows: 4,
             theme: Themes.light
         })
+            .setSplitterStyle(new SolidLine({
+                fillStyle: new SolidFill({ color: ColorHEX('#f4f4f4') }),
+                thickness: 10
+            }))
     }
 
     private _setupChart(options: DashboardBasicOptions, title: string, xAxisTitle: string, yAxisTitle: string, yInterval: [number, number]): ChartXY {
