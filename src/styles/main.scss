@@ -51,3 +51,18 @@ body {
         top: 0;
     }
 }
+
+#github-link {
+    position: fixed;
+    display: block;
+    top: 0;
+    right: 0;
+    margin-left: auto;
+
+    img {
+        display: block;
+        margin-left: auto;
+        margin-top: 10px;
+        margin-right: 10px;
+    }
+}
