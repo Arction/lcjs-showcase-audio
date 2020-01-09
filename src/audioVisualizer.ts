@@ -236,6 +236,15 @@ export class AudioVisualizer {
         this._charts.frequency.getDefaultAxisX().setInterval(0, this._audioCtx.sampleRate / this._audioNodes.analyzer.fftSize * this._audioNodes.analyzer.frequencyBinCount)
         this._charts.frequency.getDefaultAxisY().setInterval(this._audioNodes.analyzer.minDecibels, this._audioNodes.analyzer.maxDecibels)
 
+        this._charts.timeDomain
+            .setMouseInteractions(false)
+        this._charts.timeDomain
+            .getDefaultAxisX()
+            .setMouseInteractions(false)
+        this._charts.timeDomain
+            .getDefaultAxisY()
+            .setMouseInteractions(false)
+
         // replace the default axis tick strategy formatter formatValue function
         this._charts.waveformHistory.getDefaultAxisX().tickStrategy.formatValue = (value: number, range: FormattingRange): string => {
             return (value / this._audioCtx.sampleRate).toFixed(2)
@@ -256,11 +265,22 @@ export class AudioVisualizer {
             }
         }
 
+        // setup time-domain series
+        this._series.timeDomain
+            .setMouseInteractions(false)
+            .setCursorEnabled(false)
+
         // setup waveform series
         this._series.waveform
             .setMouseInteractions(false)
             .setMaxPointCount(1000 * 1000)
             .setCursorInterpolationEnabled(false)
+            .setResultTableFormatter((tableBuilder, series, x, y) => tableBuilder
+                .addRow(series.getName())
+                .addRow('Time', series.axisX.formatValue(x), 's')
+                .addRow('Amplitude', series.axisY.formatValue(y))
+            )
+
 
         // setup frequency series
         this._series.frequency.display
@@ -268,6 +288,11 @@ export class AudioVisualizer {
             .setCursorEnabled(false)
         this._series.frequency.cursor
             .add(this._points.frequency)
+            .setResultTableFormatter((tableBuilder, series, x, y) => tableBuilder
+                .addRow(series.getName())
+                .addRow(series.axisX.formatValue(x), 'Hz')
+                .addRow(series.axisY.formatValue(y), 'dB')
+            )
 
         // setup max frequency series
         this._series.maxFrequency.display
@@ -275,6 +300,12 @@ export class AudioVisualizer {
             .setCursorEnabled(false)
         this._series.maxFrequency.cursor
             .add(this._points.maxHistory)
+            .setResultTableFormatter((tableBuilder, series, x, y) => tableBuilder
+                .addRow(series.getName())
+                .addRow(series.axisX.formatValue(x), 'Hz')
+                .addRow(series.axisY.formatValue(y), 'dB')
+            )
+
 
         // history reset button
         this._charts.frequency.addUIElement(
