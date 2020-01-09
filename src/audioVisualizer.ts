@@ -243,10 +243,10 @@ export class AudioVisualizer {
 
         // create series
         this._series = {
-            timeDomain: this._setupSeries(this._charts.timeDomain, 'Time Domain', '#000'),
-            waveform: this._setupSeries(this._charts.waveformHistory, 'Waveform History', '#000'),
+            timeDomain: this._setupSeries(this._charts.timeDomain, 'Time Domain', '#fff'),
+            waveform: this._setupSeries(this._charts.waveformHistory, 'Waveform History', '#fff'),
             frequency: {
-                display: this._setupSeries(this._charts.frequency, 'Frequency', '#0a0'),
+                display: this._setupSeries(this._charts.frequency, 'Frequency', '#0d0'),
                 cursor: this._setupSeries(this._charts.frequency, 'Frequency', '#0000')
             },
             history: this._setupSeries(this._charts.frequency, 'Frequency Decay', '#0aa'),
@@ -301,12 +301,8 @@ export class AudioVisualizer {
             containerId: 'chart',
             numberOfColumns: 1,
             numberOfRows: 4,
-            theme: Themes.light
+            theme: Themes.dark
         })
-            .setSplitterStyle(new SolidLine({
-                fillStyle: new SolidFill({ color: ColorHEX('#f4f4f4') }),
-                thickness: 10
-            }))
     }
 
     /**
