@@ -76,3 +76,14 @@ body {
         color: #e4e4e4;
     }
 }
+
+.ios-error {
+    z-index: 2;
+    position: fixed;
+    top: 50%;
+    font-size: larger;
+    background-color: #0009;
+    color: white;
+    left: 0;
+    right: 0;
+}

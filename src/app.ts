@@ -3,6 +3,11 @@ import { SrcOption, setupSourceLabels, sourceAudioFiles } from "./audioSources"
 import { setupPlayPause } from "./controls"
 import { AudioVisualizer } from "./audioVisualizer"
 
+// show error if iOS
+if(!!navigator.platform && /iPad|iPhone|iPod/.test(navigator.platform)){
+    (document.querySelector('.ios-error') as HTMLDivElement).hidden = false
+}
+
 /**
  * Current Audio source
  */
