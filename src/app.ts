@@ -41,7 +41,7 @@ const updateSource = async () => {
     const selectedOptionElement = srcSelector[srcSelector.selectedIndex] as HTMLOptionElement
     src = selectedOptionElement.value as SrcOption
     if (src === SrcOption.file) {
-        document.getElementById('audio-input').style.display = 'inline-block'
+        document.getElementById('audio-input').style.display = 'flex'
     } else {
         const ai = document.getElementById('audio-input') as HTMLInputElement
         ai.style.display = 'none'

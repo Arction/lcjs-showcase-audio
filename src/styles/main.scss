@@ -3,6 +3,7 @@ body {
     margin: 0;
     height: 100%;
     overflow: hidden;
+    background-color: #202020;
 }
 
 .container {
@@ -12,7 +13,7 @@ body {
     flex-direction: column;
 
     #chart {
-        flex: 1 0 auto;
+        flex: 1 1 auto;
         display: flex;
         height: 100%;
         width: 100%;
@@ -39,16 +40,9 @@ body {
 }
 
 #play-pause {
-    position: relative;
     height: 33px;
     height: 33px;
     width: 40px;
-
-    button {
-        position: absolute;
-        left: 0;
-        top: 0;
-    }
 }
 
 #github-link {
@@ -61,19 +55,34 @@ body {
 
     img {
         display: block;
-        margin-left: auto;
-        margin-top: 10px;
-        margin-right: 10px;
+        margin: 10px 10px 10px auto;
+    }
+}
+
+@media screen and (max-width: 770px) {
+    #github-link{
+        top: unset;
+        bottom: 0;
     }
 }
 
 #controls {
-    position: fixed;
-    top: 0;
     z-index: 1;
+    display: flex;
 
     label {
         color: #e4e4e4;
+        align-self: center;
+    }
+
+    input {
+        align-self: center;
+    }
+}
+
+.audio-input {
+    * {
+        align-self: center;
     }
 }
 

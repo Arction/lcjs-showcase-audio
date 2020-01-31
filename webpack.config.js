@@ -25,7 +25,13 @@ module.exports = {
     devtool: 'eval-source-map',
     devServer: {
         contentBase: path.join(__dirname, 'out'),
-        compress: true
+        compress: true,
+        disableHostCheck: true,
+        headers: {
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, PATCH, OPTIONS",
+            "Access-Control-Allow-Headers": "X-Requested-With, content-type, Authorization"
+        }
     },
     resolve: {
         extensions: ['.ts', '.js']

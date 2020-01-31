@@ -16,7 +16,8 @@ import {
     UIOrigins,
     SolidLine,
     SolidFill,
-    ColorHEX
+    ColorHEX,
+    VisibleTicks,
 } from "@arction/lcjs"
 import {
     Scaler,
@@ -228,15 +229,26 @@ export class AudioVisualizer {
         this._charts = {
             timeDomain: this._setupChart({ columnIndex: 0, columnSpan: 1, rowIndex: 0, rowSpan: 1 }, 'Time Domain', 'Sample', 'Amplitude', [-1, 1]),
             waveformHistory: this._setupChart({ columnIndex: 0, columnSpan: 1, rowIndex: 1, rowSpan: 1 }, 'Waveform history', 'Time (s)', 'Amplitude', [-1, 1]),
-            frequency: this._setupChart({ columnIndex: 0, columnSpan: 1, rowIndex: 2, rowSpan: 2 }, 'Spectrum', 'Frequency Hz)', 'dB', [0, 256])
+            frequency: this._setupChart({ columnIndex: 0, columnSpan: 1, rowIndex: 2, rowSpan: 1 }, 'Spectrum', 'Frequency (Hz)', 'dB', [0, 256])
         }
         this._charts.waveformHistory
             .getDefaultAxisX()
             .setScrollStrategy(AxisScrollStrategies.progressive)
             .setInterval(0, this._audioCtx.sampleRate * 10)
+        this._charts.waveformHistory
+            .getDefaultAxisY()
+            .setMouseInteractions(false)
+        this._charts.waveformHistory
+            .getDefaultAxisY()
+            .setChartInteractionZoomByDrag(false)
+            .setChartInteractionFitByDrag(false)
+            .setChartInteractionZoomByWheel(false)
+
         this._charts.timeDomain.getDefaultAxisX().setInterval(0, this._audioNodes.analyzer.fftSize)
         this._charts.frequency.getDefaultAxisX().setInterval(0, this._audioCtx.sampleRate / this._audioNodes.analyzer.fftSize * this._audioNodes.analyzer.frequencyBinCount)
         this._charts.frequency.getDefaultAxisY().setInterval(this._audioNodes.analyzer.minDecibels, this._audioNodes.analyzer.maxDecibels)
+        // frequency chart is twice as large as the other charts
+        this._db.setRowHeight(2, 2)
 
         this._charts.timeDomain
             .setMouseInteractions(false)
@@ -315,7 +327,7 @@ export class AudioVisualizer {
         )
             .setText('Reset Frequency Max')
             .setOrigin(UIOrigins.LeftTop)
-            .setPosition({ x: 1, y: 99 })
+            .setPosition({ x: 0.2, y: 100 })
             .onMouseClick(() => {
                 for (let i = 0; i < this._data.maxHistory.byteLength; i++) {
                     this._data.maxHistory[i] = 0
@@ -333,9 +345,11 @@ export class AudioVisualizer {
         this._db = lightningChart().Dashboard({
             containerId: 'chart',
             numberOfColumns: 1,
-            numberOfRows: 4,
+            numberOfRows: 3,
             theme: Themes.dark
         })
+            .setBackgroundStrokeStyle((s: SolidLine) => s.setThickness(0))
+            .setSplitterStyle((style: SolidLine) => style.setThickness(5))
     }
 
     /**
@@ -356,16 +370,29 @@ export class AudioVisualizer {
             }
         })
             .setTitle(title)
-        chart
-            .getAxes().forEach(axis => {
-            })
+            .setPadding({ top: 2, left: 1, right: 6, bottom: 2 })
+            .setTitleMarginTop(2)
         chart.getDefaultAxisX()
             .setTitle(xAxisTitle)
+            .setTitleFont(f => f.setSize(13))
+            .setTitleMargin(-5)
+            .setTickStyle((t: VisibleTicks) => t
+                .setTickPadding(0)
+                .setLabelPadding(-5)
+                .setLabelFont(f => f.setSize(12))
+            )
+            .setAnimationZoom(undefined)
 
         chart.getDefaultAxisY()
             .setScrollStrategy(undefined)
             .setInterval(yInterval[0], yInterval[1])
             .setTitle(yAxisTitle)
+            .setTitleFont(f => f.setSize(13))
+            .setTitleMargin(0)
+            .setTickStyle((t: VisibleTicks) => t
+                .setLabelFont(f => f.setSize(12))
+            )
+            .setAnimationZoom(undefined)
         return chart
     }
 
