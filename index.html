@@ -7,15 +7,20 @@
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
   <title>Audio Visualization | LightningChart JS Showcase</title>
+  <script src="polyfill.min.js"></script>
 </head>
 
 <body>
   <a id="github-link" href="https://github.com/Arction/lcjs-showcase-audio">
     <img src="GitHub-Mark-Light-32px.png" />
   </a>
-  <div class="ios-error" hidden>
+  <div id='ios-error' class="error" hidden>
     <h1>Unsupported platform, iOS, detected.</h1>
     <p>This showcase doesn't work correctly on iOS because of poor support for Web Audio API's in iOS devices.</p>
+  </div>
+  <div id='ie-error' class="error" hidden>
+    <h1>Unsupported platform detected.</h1>
+    <p>AudioContext API is not supported on this browser. Try to use more modern browser</p>
   </div>
   <div class="container">
     <div id="resume" hidden><img src="play_circle_outline-24px.svg" /></div>
