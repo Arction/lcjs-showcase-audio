@@ -5,7 +5,7 @@ import { AudioVisualizer } from "./audioVisualizer"
 
 // show error if iOS
 if(!!navigator.platform && /iPad|iPhone|iPod/.test(navigator.platform)){
-    (document.querySelector('.ios-error') as HTMLDivElement).hidden = false
+    (document.getElementById('ios-error') as HTMLDivElement).hidden = false
 }
 
 /**

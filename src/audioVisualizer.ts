@@ -133,7 +133,13 @@ export class AudioVisualizer {
     constructor() {
         const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
         // setup the audio context
-        this._audioCtx = new AudioContext()
+        try {
+            this._audioCtx = new AudioContext()
+        } catch (e) {
+            // AudioContext is not supported.
+            document.getElementById('ie-error').hidden = false
+            throw e
+        }
         this._audioCtx.createScriptProcessor = this._audioCtx.createScriptProcessor || (this._audioCtx as any).createJavaScriptNode
         this._audioNodes = {
             analyzer: this._audioCtx.createAnalyser(),
