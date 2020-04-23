@@ -18,6 +18,14 @@ import {
     SolidFill,
     ColorHEX,
     VisibleTicks,
+    IntensityGridSeries,
+    ColorRGBA,
+    LUT,
+    PalettedFill,
+    Axis,
+    emptyLine,
+    emptyTick,
+    emptyFill,
 } from "@arction/lcjs"
 import {
     Scaler,
@@ -106,7 +114,8 @@ export class AudioVisualizer {
     private _charts: {
         timeDomain: ChartXY,
         waveformHistory: ChartXY,
-        frequency: ChartXY
+        spectrum: ChartXY,
+        spectrogram: ChartXY
     }
 
     /**
@@ -115,16 +124,19 @@ export class AudioVisualizer {
     private _series: {
         timeDomain: LineSeries,
         waveform: LineSeries,
-        frequency: {
+        amplitude: {
             display: LineSeries,
             cursor: LineSeries
         },
         history: LineSeries,
-        maxFrequency: {
+        maxAmplitude: {
             display: LineSeries,
             cursor: LineSeries
-        }
+        },
+        spectrogram: IntensityGridSeries
+        spectrogramAxis: Axis
     }
+
     /**
      * The 'time' of the last waveform data input point
      */
@@ -151,6 +163,7 @@ export class AudioVisualizer {
         // mute audio output by default
         this._audioNodes.gain.gain.setValueAtTime(0, this._audioCtx.currentTime)
 
+        const spectrogramHistoryLength = 1024 * (this._audioNodes.analyzer.fftSize / this._audioCtx.sampleRate)
         // setup audio processor
         this._audioNodes.processor.onaudioprocess = (ev: AudioProcessingEvent) => {
             // update data from analyzer
@@ -196,10 +209,15 @@ export class AudioVisualizer {
             this._series.timeDomain.clear()
             this._series.timeDomain.add(this._points.timeDomain)
 
-            // add waveform data to the waveform series
+            // // add waveform data to the waveform series
             const waveData = ArrayBufferToPointArray(this._data.timeDomain, offSetScaler(this._lastTime), freqScaler)
             this._series.waveform.add(waveData)
             this._lastTime += waveData.length
+
+            const freqData = Array.from(this._data.frequency)
+            this._series.spectrogram.addColumn(1, 'value', [freqData])
+            const lastTimeInS = this._lastTime / this._audioCtx.sampleRate
+            this._series.spectrogramAxis.setInterval(lastTimeInS - spectrogramHistoryLength, lastTimeInS)
 
             // output the audio
             ev.outputBuffer.copyToChannel(ev.inputBuffer.getChannelData(0), 0)
@@ -231,11 +249,14 @@ export class AudioVisualizer {
         // setup dashboard
         this._setupDashboard()
 
+        const maxFreq = this._audioCtx.sampleRate / this._audioNodes.analyzer.fftSize * this._audioNodes.analyzer.frequencyBinCount
+
         // setup charts
         this._charts = {
-            timeDomain: this._setupChart({ columnIndex: 0, columnSpan: 1, rowIndex: 0, rowSpan: 1 }, 'Time Domain', 'Sample', 'Amplitude', [-1, 1]),
-            waveformHistory: this._setupChart({ columnIndex: 0, columnSpan: 1, rowIndex: 1, rowSpan: 1 }, 'Waveform history', 'Time (s)', 'Amplitude', [-1, 1]),
-            frequency: this._setupChart({ columnIndex: 0, columnSpan: 1, rowIndex: 2, rowSpan: 1 }, 'Spectrum', 'Frequency (Hz)', 'dB', [0, 256])
+            timeDomain: this._setupChart({ columnIndex: 0, columnSpan: 2, rowIndex: 0, rowSpan: 1 }, 'Time Domain', 'Sample', 'Amplitude', [-1, 1]),
+            waveformHistory: this._setupChart({ columnIndex: 0, columnSpan: 2, rowIndex: 1, rowSpan: 1 }, 'Waveform history', 'Time (s)', 'Amplitude', [-1, 1]),
+            spectrum: this._setupChart({ columnIndex: 0, columnSpan: 1, rowIndex: 2, rowSpan: 1 }, 'Spectrum', 'Frequency (Hz)', 'dB', [0, 256]),
+            spectrogram: this._setupChart({ columnIndex: 1, columnSpan: 1, rowIndex: 2, rowSpan: 1 }, 'Spectrogram', 's', 'Frequency (Hz)', [0, maxFreq / 2])
         }
         this._charts.waveformHistory
             .getDefaultAxisX()
@@ -251,8 +272,8 @@ export class AudioVisualizer {
             .setChartInteractionZoomByWheel(false)
 
         this._charts.timeDomain.getDefaultAxisX().setInterval(0, this._audioNodes.analyzer.fftSize)
-        this._charts.frequency.getDefaultAxisX().setInterval(0, this._audioCtx.sampleRate / this._audioNodes.analyzer.fftSize * this._audioNodes.analyzer.frequencyBinCount)
-        this._charts.frequency.getDefaultAxisY().setInterval(this._audioNodes.analyzer.minDecibels, this._audioNodes.analyzer.maxDecibels)
+        this._charts.spectrum.getDefaultAxisX().setInterval(0, this._audioCtx.sampleRate / this._audioNodes.analyzer.fftSize * this._audioNodes.analyzer.frequencyBinCount)
+        this._charts.spectrum.getDefaultAxisY().setInterval(this._audioNodes.analyzer.minDecibels, this._audioNodes.analyzer.maxDecibels)
         // frequency chart is twice as large as the other charts
         this._db.setRowHeight(2, 2)
 
@@ -270,19 +291,32 @@ export class AudioVisualizer {
             return (value / this._audioCtx.sampleRate).toFixed(2)
         }
 
+        this._charts.spectrogram
+            .getDefaultAxisX()
+            // Hide the default axis
+            .setNibStyle(emptyLine)
+            .setTickStyle(emptyTick)
+            .setStrokeStyle(emptyLine)
+            .setTitleMargin(1)
+            .setTitleFillStyle(emptyFill)
+            // Set interval for the spectrogram
+            .setInterval(0, 1024)
+
         // create series
         this._series = {
             timeDomain: this._setupSeries(this._charts.timeDomain, 'Time Domain', '#fff'),
             waveform: this._setupSeries(this._charts.waveformHistory, 'Waveform History', '#fff'),
-            frequency: {
-                display: this._setupSeries(this._charts.frequency, 'Frequency', '#0d0'),
-                cursor: this._setupSeries(this._charts.frequency, 'Frequency', '#0000')
+            amplitude: {
+                display: this._setupSeries(this._charts.spectrum, 'Amplitude', '#0d0'),
+                cursor: this._setupSeries(this._charts.spectrum, 'Amplitude', '#0000')
             },
-            history: this._setupSeries(this._charts.frequency, 'Frequency Decay', '#0aa'),
-            maxFrequency: {
-                display: this._setupSeries(this._charts.frequency, 'Frequency Max', '#aa0'),
-                cursor: this._setupSeries(this._charts.frequency, 'Frequency Max', '#0000')
-            }
+            history: this._setupSeries(this._charts.spectrum, 'Amplitude Decay', '#0aa'),
+            maxAmplitude: {
+                display: this._setupSeries(this._charts.spectrum, 'Amplitude Max', '#aa0'),
+                cursor: this._setupSeries(this._charts.spectrum, 'Amplitude Max', '#0000')
+            },
+            spectrogram: this._setupIntensitySeries(this._charts.spectrogram, 1024, fBinCount / 2, maxFreq / 2, 'Spectrogram'),
+            spectrogramAxis: this._charts.spectrogram.addAxisX()
         }
 
         // setup time-domain series
@@ -303,10 +337,10 @@ export class AudioVisualizer {
 
 
         // setup frequency series
-        this._series.frequency.display
+        this._series.amplitude.display
             .setMouseInteractions(false)
             .setCursorEnabled(false)
-        this._series.frequency.cursor
+        this._series.amplitude.cursor
             .add(this._points.frequency)
             .setResultTableFormatter((tableBuilder, series, x, y) => tableBuilder
                 .addRow(series.getName())
@@ -315,10 +349,10 @@ export class AudioVisualizer {
             )
 
         // setup max frequency series
-        this._series.maxFrequency.display
+        this._series.maxAmplitude.display
             .setMouseInteractions(false)
             .setCursorEnabled(false)
-        this._series.maxFrequency.cursor
+        this._series.maxAmplitude.cursor
             .add(this._points.maxHistory)
             .setResultTableFormatter((tableBuilder, series, x, y) => tableBuilder
                 .addRow(series.getName())
@@ -328,10 +362,10 @@ export class AudioVisualizer {
 
 
         // history reset button
-        this._charts.frequency.addUIElement(
+        this._charts.spectrum.addUIElement(
             UIElementBuilders.ButtonBox
         )
-            .setText('Reset Frequency Max')
+            .setText('Reset Spectrum Max')
             .setOrigin(UIOrigins.LeftTop)
             .setPosition({ x: 0.2, y: 100 })
             .onMouseClick(() => {
@@ -339,21 +373,33 @@ export class AudioVisualizer {
                     this._data.maxHistory[i] = 0
                 }
                 // refresh the displayed data
-                this._series.maxFrequency.display.clear()
-                this._series.maxFrequency.display.add(ArrayBufferToPointArray(this._data.maxHistory))
+                this._series.maxAmplitude.display.clear()
+                this._series.maxAmplitude.display.add(ArrayBufferToPointArray(this._data.maxHistory))
             })
+
+        this._series.spectrogramAxis
+            .setMouseInteractions(false)
+            .setTitle('Time (s)')
+            .setTitleFont(f => f.setSize(13))
+            .setTitleMargin(-5)
+            .setTickStyle((t: VisibleTicks) => t
+                .setTickPadding(0)
+                .setLabelPadding(-5)
+                .setLabelFont(f => f.setSize(12))
+            )
     }
 
     /**
      * Create and setup the dashboard
      */
     private _setupDashboard() {
-        this._db = lightningChart().Dashboard({
-            containerId: 'chart',
-            numberOfColumns: 1,
-            numberOfRows: 3,
-            theme: Themes.dark
-        })
+        this._db = lightningChart()
+            .Dashboard({
+                containerId: 'chart',
+                numberOfColumns: 2,
+                numberOfRows: 3,
+                theme: Themes.dark
+            })
             .setBackgroundStrokeStyle((s: SolidLine) => s.setThickness(0))
             .setSplitterStyle((style: SolidLine) => style.setThickness(5))
     }
@@ -410,12 +456,37 @@ export class AudioVisualizer {
      */
     private _setupSeries(chart: ChartXY, name: string, color: string = '#fff'): LineSeries {
         const series = chart.addLineSeries({
-            dataPattern: DataPatterns.horizontalProgressive
+            dataPattern: DataPatterns.horizontalProgressive,
         })
-        series
             .setStrokeStyle((style: SolidLine) => style.setFillStyle((fill: SolidFill) => fill.setColor(ColorHEX(color))))
             .setName(name)
             .setCursorInterpolationEnabled(false)
+        return series
+    }
+    /**
+     * Create and setup a new series on a chart
+     * @param chart Chart to which the series should be added to
+     * @param name Name of the series
+     */
+    private _setupIntensitySeries(chart: ChartXY, columnLength: number, columnCount: number, yMax: number, name: string): IntensityGridSeries {
+        const palette = new LUT({
+            steps: [
+                { value: 0, color: ColorRGBA(0, 0, 0) },
+                { value: 255 * .3, color: ColorRGBA(0, 255, 0) },
+                { value: 255 * .6, color: ColorRGBA(255, 255, 0) },
+                { value: 255, color: ColorRGBA(255, 0, 0) }
+            ],
+            interpolate: true
+        })
+        const series = chart.addHeatmapSeries({
+            columns: columnLength,
+            rows: columnCount,
+            start: { x: 0, y: 0 },
+            end: { x: 1024, y: yMax },
+            pixelate: false,
+        })
+            .setFillStyle(new PalettedFill({ lut: palette }))
+            .setName(name)
         return series
     }
 
@@ -423,12 +494,12 @@ export class AudioVisualizer {
      * Update series that require manual refresh
      */
     public update() {
-        this._series.frequency.display.clear()
-        this._series.frequency.display.add(this._points.frequency)
+        this._series.amplitude.display.clear()
+        this._series.amplitude.display.add(this._points.frequency)
         this._series.history.clear()
         this._series.history.add(this._points.history)
-        this._series.maxFrequency.display.clear()
-        this._series.maxFrequency.display.add(this._points.maxHistory)
+        this._series.maxAmplitude.display.clear()
+        this._series.maxAmplitude.display.add(this._points.maxHistory)
     }
 
     /**

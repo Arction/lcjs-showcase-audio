@@ -4,7 +4,7 @@ import { setupPlayPause } from "./controls"
 import { AudioVisualizer } from "./audioVisualizer"
 
 // show error if iOS
-if(!!navigator.platform && /iPad|iPhone|iPod/.test(navigator.platform)){
+if (!!navigator.platform && /iPad|iPhone|iPod/.test(navigator.platform)) {
     (document.getElementById('ios-error') as HTMLDivElement).hidden = false
 }
 
@@ -62,6 +62,10 @@ const updateSource = async () => {
             break
         case SrcOption.f500_1000_1000:
             await listenToFileURL(sourceAudioFiles.f500_1000_1000)
+            await audioVisualizer.play()
+            break
+        case SrcOption.symbhony_no_5:
+            await listenToFileURL(sourceAudioFiles.symbhony_no_5)
             await audioVisualizer.play()
             break
     }

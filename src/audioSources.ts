@@ -5,7 +5,8 @@ export enum SrcOption {
     mic = 'mic',
     file = 'file',
     truck = 'truck',
-    f500_1000_1000 = 'f500_1000_1000'
+    f500_1000_1000 = 'f500_1000_1000',
+    symbhony_no_5 = 'symbhony_no_5'
 }
 
 /**
@@ -15,7 +16,8 @@ const srcLabels: { [key in keyof typeof SrcOption]: string } = {
     truck: 'Truck Driving',
     mic: 'Microphone',
     file: 'Load Audio File from URL',
-    f500_1000_1000: '500Hz, 1kHz and 10kHz signals'
+    f500_1000_1000: '500Hz, 1kHz and 10kHz signals',
+    symbhony_no_5: "Symphony no. 5 in Cm, Op. 67 - IV. Allegro"
 }
 
 /**
@@ -23,6 +25,7 @@ const srcLabels: { [key in keyof typeof SrcOption]: string } = {
  */
 export const sourceAudioFiles = {
     truck: 'Truck_driving_by-Jason_Baker-2112866529.wav',
+    symbhony_no_5: 'Symphony no. 5 in Cm, Op. 67 - IV. Allegro.mp3',
     f500_1000_1000: '500_1000_10000.wav'
 }
 
@@ -59,6 +62,8 @@ export const setupSourceLabels = () => {
         const option = document.createElement('option')
         option.value = key
         option.text = srcLabels[key]
+        if (key === SrcOption.truck)
+            option.selected = true
         selector.appendChild(option)
     })
 }
