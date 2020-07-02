@@ -36,6 +36,16 @@ import {
     offSetScaler
 } from "./utils"
 
+// // Use theme if provided
+const urlParams = new URLSearchParams(window.location.search);
+let theme = Themes.dark
+if (urlParams.get('theme') == 'light'){
+    theme = Themes.light
+    document.body.style.backgroundColor = '#fff'
+    document.querySelector('label').style.color = '#000'
+}
+
+
 /**
  * Update points in a given array with new values
  * @param arr Array of points to update
@@ -303,9 +313,12 @@ export class AudioVisualizer {
             .setInterval(0, 1024)
 
         // create series
+        let seriesColor = '#fff'
+        if (theme == Themes.light)
+            seriesColor = '#0A7AAD'
         this._series = {
-            timeDomain: this._setupSeries(this._charts.timeDomain, 'Time Domain', '#fff'),
-            waveform: this._setupSeries(this._charts.waveformHistory, 'Waveform History', '#fff'),
+            timeDomain: this._setupSeries(this._charts.timeDomain, 'Time Domain', seriesColor),
+            waveform: this._setupSeries(this._charts.waveformHistory, 'Waveform History', seriesColor),
             amplitude: {
                 display: this._setupSeries(this._charts.spectrum, 'Amplitude', '#0d0'),
                 cursor: this._setupSeries(this._charts.spectrum, 'Amplitude', '#0000')
@@ -398,10 +411,11 @@ export class AudioVisualizer {
                 containerId: 'chart',
                 numberOfColumns: 2,
                 numberOfRows: 3,
-                theme: Themes.dark
+                theme
             })
-            .setBackgroundStrokeStyle((s: SolidLine) => s.setThickness(0))
             .setSplitterStyle((style: SolidLine) => style.setThickness(5))
+            if (theme == Themes.dark)
+                this._db.setBackgroundStrokeStyle((s: SolidLine) => s.setThickness(0))
     }
 
     /**
