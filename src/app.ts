@@ -7,7 +7,17 @@ import { AudioVisualizer } from "./audioVisualizer"
 if (!!navigator.platform && /iPad|iPhone|iPod/.test(navigator.platform)) {
     (document.getElementById('ios-error') as HTMLDivElement).hidden = false
 }
-
+// hide link when in iframe
+function inIframe () {
+    try {
+        return window.self !== window.top
+    } catch (e) {
+        return true
+    }
+}
+if (inIframe()){
+    document.getElementById('github-link').style.display = 'none'
+}
 /**
  * Current Audio source
  */
