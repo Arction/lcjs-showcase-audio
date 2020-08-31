@@ -50,8 +50,10 @@ module.exports = {
             title: 'lcjs-typescript-example',
             template: '!!handlebars-loader!src/index.hbs'
         }),
-        new CopyPlugin([
-            { from: 'src/static', to: '' }
-        ])
+        new CopyPlugin({
+            patterns: [
+                { from: 'src/static', to: '' }
+            ]
+        })
     ]
 }
