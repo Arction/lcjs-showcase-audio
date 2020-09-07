@@ -26,6 +26,8 @@ import {
     emptyLine,
     emptyTick,
     emptyFill,
+    NumericTickStrategy,
+    AxisTickStrategy,
 } from "@arction/lcjs"
 import {
     Scaler,
@@ -39,7 +41,7 @@ import {
 // // Use theme if provided
 const urlParams = new URLSearchParams(window.location.search);
 let theme = Themes.dark
-if (urlParams.get('theme') == 'light'){
+if (urlParams.get('theme') == 'light') {
     theme = Themes.light
     document.body.style.backgroundColor = '#fff'
     document.querySelector('label').style.color = '#000'
@@ -297,15 +299,17 @@ export class AudioVisualizer {
             .setMouseInteractions(false)
 
         // replace the default axis tick strategy formatter formatValue function
-        this._charts.waveformHistory.getDefaultAxisX().tickStrategy.formatValue = (value: number, range: FormattingRange): string => {
-            return (value / this._audioCtx.sampleRate).toFixed(2)
-        }
+        this._charts.waveformHistory.getDefaultAxisX().setTickStyle<'Numeric'>((style) => style
+            .setFormattingFunction((value: number, range: FormattingRange): string => {
+                return (value / this._audioCtx.sampleRate).toFixed(2)
+            })
+        )
 
         this._charts.spectrogram
             .getDefaultAxisX()
             // Hide the default axis
             .setNibStyle(emptyLine)
-            .setTickStyle(emptyTick)
+            .setTickStrategy(AxisTickStrategies.Empty)
             .setStrokeStyle(emptyLine)
             .setTitleMargin(1)
             .setTitleFillStyle(emptyFill)
@@ -395,11 +399,12 @@ export class AudioVisualizer {
             .setTitle('Time (s)')
             .setTitleFont(f => f.setSize(13))
             .setTitleMargin(-5)
-            .setTickStyle((t: VisibleTicks) => t
-                .setTickPadding(0)
-                .setLabelPadding(-5)
-                .setLabelFont(f => f.setSize(12))
-            )
+            .setTickStrategy(AxisTickStrategies.Numeric, (tickStrategy: NumericTickStrategy) => tickStrategy
+                .setMajorTickStyle((tickStyle) => tickStyle
+                    .setTickPadding(0)
+                    .setLabelPadding(-5)
+                    .setLabelFont(f => f.setSize(12))
+                ))
     }
 
     /**
@@ -408,14 +413,14 @@ export class AudioVisualizer {
     private _setupDashboard() {
         this._db = lightningChart()
             .Dashboard({
-                containerId: 'chart',
+                container: 'chart',
                 numberOfColumns: 2,
                 numberOfRows: 3,
                 theme
             })
             .setSplitterStyle((style: SolidLine) => style.setThickness(5))
-            if (theme == Themes.dark)
-                this._db.setBackgroundStrokeStyle((s: SolidLine) => s.setThickness(0))
+        if (theme == Themes.dark)
+            this._db.setBackgroundStrokeStyle((s: SolidLine) => s.setThickness(0))
     }
 
     /**
@@ -428,12 +433,7 @@ export class AudioVisualizer {
      */
     private _setupChart(options: DashboardBasicOptions, title: string, xAxisTitle: string, yAxisTitle: string, yInterval: [number, number]): ChartXY {
         const chart = this._db.createChartXY({
-            ...options,
-            chartXYOptions: {
-                // hack
-                defaultAxisXTickStrategy: Object.assign({}, AxisTickStrategies.Numeric),
-                defaultAxisYTickStrategy: AxisTickStrategies.Numeric,
-            }
+            ...options
         })
             .setTitle(title)
             .setPadding({ top: 2, left: 1, right: 6, bottom: 2 })
@@ -442,11 +442,12 @@ export class AudioVisualizer {
             .setTitle(xAxisTitle)
             .setTitleFont(f => f.setSize(13))
             .setTitleMargin(-5)
-            .setTickStyle((t: VisibleTicks) => t
-                .setTickPadding(0)
-                .setLabelPadding(-5)
-                .setLabelFont(f => f.setSize(12))
-            )
+            .setTickStrategy(AxisTickStrategies.Numeric, (tickStrategy: NumericTickStrategy) => tickStrategy
+                .setMajorTickStyle((tickStyle) => tickStyle
+                    .setTickPadding(0)
+                    .setLabelPadding(-5)
+                    .setLabelFont(f => f.setSize(12))
+                ))
             .setAnimationZoom(undefined)
 
         chart.getDefaultAxisY()
@@ -455,9 +456,10 @@ export class AudioVisualizer {
             .setTitle(yAxisTitle)
             .setTitleFont(f => f.setSize(13))
             .setTitleMargin(0)
-            .setTickStyle((t: VisibleTicks) => t
-                .setLabelFont(f => f.setSize(12))
-            )
+            .setTickStrategy(AxisTickStrategies.Numeric, (tickStrategy: NumericTickStrategy) => tickStrategy
+                .setMajorTickStyle((tickStyle) => tickStyle
+                    .setLabelFont(f => f.setSize(12))
+                ))
             .setAnimationZoom(undefined)
         return chart
     }
