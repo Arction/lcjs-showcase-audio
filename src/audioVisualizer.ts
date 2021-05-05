@@ -4,7 +4,6 @@ import {
     MPoint,
     LineSeries,
     ChartXY,
-    DashboardBasicOptions,
     AxisTickStrategies,
     Dashboard,
     lightningChart,
@@ -28,6 +27,9 @@ import {
     emptyFill,
     NumericTickStrategy,
     AxisTickStrategy,
+    ChartOptions,
+    PointMarker,
+    UIBackground,
 } from "@arction/lcjs"
 import {
     Scaler,
@@ -346,7 +348,7 @@ export class AudioVisualizer {
             .setMouseInteractions(false)
             .setMaxPointCount(1000 * 1000)
             .setCursorInterpolationEnabled(false)
-            .setResultTableFormatter((tableBuilder, series, x, y) => tableBuilder
+            .setCursorResultTableFormatter((tableBuilder, series, x, y) => tableBuilder
                 .addRow(series.getName())
                 .addRow('Time', series.axisX.formatValue(x), 's')
                 .addRow('Amplitude', series.axisY.formatValue(y))
@@ -359,7 +361,7 @@ export class AudioVisualizer {
             .setCursorEnabled(false)
         this._series.amplitude.cursor
             .add(this._points.frequency)
-            .setResultTableFormatter((tableBuilder, series, x, y) => tableBuilder
+            .setCursorResultTableFormatter((tableBuilder, series, x, y) => tableBuilder
                 .addRow(series.getName())
                 .addRow(series.axisX.formatValue(x), 'Hz')
                 .addRow(series.axisY.formatValue(y), 'dB')
@@ -371,7 +373,7 @@ export class AudioVisualizer {
             .setCursorEnabled(false)
         this._series.maxAmplitude.cursor
             .add(this._points.maxHistory)
-            .setResultTableFormatter((tableBuilder, series, x, y) => tableBuilder
+            .setCursorResultTableFormatter((tableBuilder, series, x, y) => tableBuilder
                 .addRow(series.getName())
                 .addRow(series.axisX.formatValue(x), 'Hz')
                 .addRow(series.axisY.formatValue(y), 'dB')
@@ -431,7 +433,7 @@ export class AudioVisualizer {
      * @param yAxisTitle Y-Axis title
      * @param yInterval Y-Axis interval
      */
-    private _setupChart(options: DashboardBasicOptions, title: string, xAxisTitle: string, yAxisTitle: string, yInterval: [number, number]): ChartXY {
+    private _setupChart(options: ChartOptions<PointMarker,UIBackground>, title: string, xAxisTitle: string, yAxisTitle: string, yInterval: [number, number]): ChartXY {
         const chart = this._db.createChartXY({
             ...options
         })
@@ -472,7 +474,11 @@ export class AudioVisualizer {
      */
     private _setupSeries(chart: ChartXY, name: string, color: string = '#fff'): LineSeries {
         const series = chart.addLineSeries({
-            dataPattern: DataPatterns.horizontalProgressive,
+            dataPattern: {
+                pattern: 'ProgressiveX',
+                regularProgressiveStep: true,
+                allowDataGrouping: true
+            }
         })
             .setStrokeStyle((style: SolidLine) => style.setFillStyle((fill: SolidFill) => fill.setColor(ColorHEX(color))))
             .setName(name)
