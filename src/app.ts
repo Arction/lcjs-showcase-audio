@@ -114,16 +114,6 @@ async function listenToFileURL(url): Promise<void> {
     audioVisualizer.setSource(src)
 }
 
-/**
- * Update with a requestAnimationFrame loop
- */
-function update() {
-    audioVisualizer.update()
-    window.requestAnimationFrame(update)
-}
-
-window.requestAnimationFrame(update)
-
 // hide the play button if it's not needed
 audioVisualizer.getContext().addEventListener('statechange', () => {
     if (!resumeElement.hidden && audioVisualizer.getState() !== 'suspended') {

@@ -58,10 +58,11 @@ if (urlParams.get('theme') == 'light') {
  * @param yScaler Scaler for the Y-values
  */
 function updatePoints(arr: MPoint[], buf: Uint8Array, xScaler: Scaler = noScaler, yScaler: Scaler = noScaler): void {
-    arr.forEach((p, i) => {
+    for (let i = 0; i < arr.length; i += 1) {
+        const p = arr[i]
         p.y = yScaler(buf[i])
         p.x = xScaler(i)
-    })
+    }
 }
 
 /**
@@ -138,15 +139,9 @@ export class AudioVisualizer {
     private _series: {
         timeDomain: LineSeries,
         waveform: LineSeries,
-        amplitude: {
-            display: LineSeries,
-            cursor: LineSeries
-        },
+        amplitude: LineSeries,
         history: LineSeries,
-        maxAmplitude: {
-            display: LineSeries,
-            cursor: LineSeries
-        },
+        maxAmplitude: LineSeries,
         spectrogram: IntensityGridSeries
         spectrogramAxis: Axis
     }
@@ -155,6 +150,9 @@ export class AudioVisualizer {
      * The 'time' of the last waveform data input point
      */
     private _lastTime: number = 0
+
+    private readonly _spectrogramDataCount = 256
+    private readonly _waveformHistoryLength = 5
 
     constructor() {
         const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
@@ -177,14 +175,14 @@ export class AudioVisualizer {
         // mute audio output by default
         this._audioNodes.gain.gain.setValueAtTime(0, this._audioCtx.currentTime)
 
-        const spectrogramHistoryLength = 1024 * (this._audioNodes.analyzer.fftSize / this._audioCtx.sampleRate)
+        const spectrogramHistoryLength = this._spectrogramDataCount * (this._audioNodes.analyzer.fftSize / this._audioCtx.sampleRate)
+        const mScaler = multiplierScaler(this._audioCtx.sampleRate / this._audioNodes.analyzer.fftSize)
+        const dScaler = dbScaler(this._audioNodes.analyzer)
         // setup audio processor
         this._audioNodes.processor.onaudioprocess = (ev: AudioProcessingEvent) => {
             // update data from analyzer
             this._audioNodes.analyzer.getByteTimeDomainData(this._data.timeDomain)
             this._audioNodes.analyzer.getByteFrequencyData(this._data.frequency)
-            const mScaler = multiplierScaler(this._audioCtx.sampleRate / this._audioNodes.analyzer.fftSize)
-            const dScaler = dbScaler(this._audioNodes.analyzer)
             // update frequency points
             updatePoints(
                 this._points.frequency,
@@ -233,6 +231,8 @@ export class AudioVisualizer {
             const lastTimeInS = this._lastTime / this._audioCtx.sampleRate
             this._series.spectrogramAxis.setInterval(lastTimeInS - spectrogramHistoryLength, lastTimeInS)
 
+            this.update()
+
             // output the audio
             ev.outputBuffer.copyToChannel(ev.inputBuffer.getChannelData(0), 0)
         }
@@ -275,12 +275,10 @@ export class AudioVisualizer {
         this._charts.waveformHistory
             .getDefaultAxisX()
             .setScrollStrategy(AxisScrollStrategies.progressive)
-            .setInterval(0, this._audioCtx.sampleRate * 10)
+            .setInterval(0, this._audioCtx.sampleRate * this._waveformHistoryLength)
         this._charts.waveformHistory
             .getDefaultAxisY()
             .setMouseInteractions(false)
-        this._charts.waveformHistory
-            .getDefaultAxisY()
             .setChartInteractionZoomByDrag(false)
             .setChartInteractionFitByDrag(false)
             .setChartInteractionZoomByWheel(false)
@@ -323,18 +321,12 @@ export class AudioVisualizer {
         if (theme == Themes.light)
             seriesColor = '#0A7AAD'
         this._series = {
-            timeDomain: this._setupSeries(this._charts.timeDomain, 'Time Domain', seriesColor),
+            timeDomain: this._setupSeries(this._charts.timeDomain, 'Time Domain', seriesColor, false),
             waveform: this._setupSeries(this._charts.waveformHistory, 'Waveform History', seriesColor),
-            amplitude: {
-                display: this._setupSeries(this._charts.spectrum, 'Amplitude', '#0d0'),
-                cursor: this._setupSeries(this._charts.spectrum, 'Amplitude', '#0000')
-            },
-            history: this._setupSeries(this._charts.spectrum, 'Amplitude Decay', '#0aa'),
-            maxAmplitude: {
-                display: this._setupSeries(this._charts.spectrum, 'Amplitude Max', '#aa0'),
-                cursor: this._setupSeries(this._charts.spectrum, 'Amplitude Max', '#0000')
-            },
-            spectrogram: this._setupIntensitySeries(this._charts.spectrogram, 1024, fBinCount / 2, maxFreq / 2, 'Spectrogram'),
+            amplitude: this._setupSeries(this._charts.spectrum, 'Amplitude', '#0d0', false),
+            history: this._setupSeries(this._charts.spectrum, 'Amplitude Decay', '#0aa', false),
+            maxAmplitude: this._setupSeries(this._charts.spectrum, 'Amplitude Max', '#aa0', false),
+            spectrogram: this._setupIntensitySeries(this._charts.spectrogram, this._spectrogramDataCount, fBinCount / 2, maxFreq / 2, 'Spectrogram'),
             spectrogramAxis: this._charts.spectrogram.addAxisX()
         }
 
@@ -346,7 +338,7 @@ export class AudioVisualizer {
         // setup waveform series
         this._series.waveform
             .setMouseInteractions(false)
-            .setMaxPointCount(1000 * 1000)
+            .setMaxPointCount(this._audioCtx.sampleRate * this._waveformHistoryLength * 2)
             .setCursorInterpolationEnabled(false)
             .setCursorResultTableFormatter((tableBuilder, series, x, y) => tableBuilder
                 .addRow(series.getName())
@@ -356,28 +348,18 @@ export class AudioVisualizer {
 
 
         // setup frequency series
-        this._series.amplitude.display
-            .setMouseInteractions(false)
+        this._series.amplitude
             .setCursorEnabled(false)
-        this._series.amplitude.cursor
-            .add(this._points.frequency)
-            .setCursorResultTableFormatter((tableBuilder, series, x, y) => tableBuilder
-                .addRow(series.getName())
-                .addRow(series.axisX.formatValue(x), 'Hz')
-                .addRow(series.axisY.formatValue(y), 'dB')
-            )
-
+            .setMouseInteractions(false)
         // setup max frequency series
-        this._series.maxAmplitude.display
-            .setMouseInteractions(false)
+        this._series.maxAmplitude
             .setCursorEnabled(false)
-        this._series.maxAmplitude.cursor
-            .add(this._points.maxHistory)
-            .setCursorResultTableFormatter((tableBuilder, series, x, y) => tableBuilder
-                .addRow(series.getName())
-                .addRow(series.axisX.formatValue(x), 'Hz')
-                .addRow(series.axisY.formatValue(y), 'dB')
-            )
+            .setMouseInteractions(false)
+        // setup frequency decay series
+        this._series.history
+            .setCursorEnabled(false)
+            .setMouseInteractions(false)
+
 
 
         // history reset button
@@ -392,8 +374,8 @@ export class AudioVisualizer {
                     this._data.maxHistory[i] = 0
                 }
                 // refresh the displayed data
-                this._series.maxAmplitude.display.clear()
-                this._series.maxAmplitude.display.add(ArrayBufferToPointArray(this._data.maxHistory))
+                this._series.maxAmplitude.clear()
+                this._series.maxAmplitude.add(ArrayBufferToPointArray(this._data.maxHistory))
             })
 
         this._series.spectrogramAxis
@@ -433,7 +415,7 @@ export class AudioVisualizer {
      * @param yAxisTitle Y-Axis title
      * @param yInterval Y-Axis interval
      */
-    private _setupChart(options: ChartOptions<PointMarker,UIBackground>, title: string, xAxisTitle: string, yAxisTitle: string, yInterval: [number, number]): ChartXY {
+    private _setupChart(options: ChartOptions<PointMarker, UIBackground>, title: string, xAxisTitle: string, yAxisTitle: string, yInterval: [number, number]): ChartXY {
         const chart = this._db.createChartXY({
             ...options
         })
@@ -472,13 +454,13 @@ export class AudioVisualizer {
      * @param name Name of the series
      * @param color Color of the series line
      */
-    private _setupSeries(chart: ChartXY, name: string, color: string = '#fff'): LineSeries {
+    private _setupSeries(chart: ChartXY, name: string, color: string = '#fff', useDataPattern: boolean = true): LineSeries {
         const series = chart.addLineSeries({
-            dataPattern: {
+            dataPattern: useDataPattern ? {
                 pattern: 'ProgressiveX',
                 regularProgressiveStep: true,
                 allowDataGrouping: true
-            }
+            } : undefined
         })
             .setStrokeStyle((style: SolidLine) => style.setFillStyle((fill: SolidFill) => fill.setColor(ColorHEX(color))))
             .setName(name)
@@ -509,6 +491,8 @@ export class AudioVisualizer {
         })
             .setFillStyle(new PalettedFill({ lut: palette }))
             .setName(name)
+            .setCursorEnabled(false)
+            .setMouseInteractions(false)
         return series
     }
 
@@ -516,12 +500,12 @@ export class AudioVisualizer {
      * Update series that require manual refresh
      */
     public update() {
-        this._series.amplitude.display.clear()
-        this._series.amplitude.display.add(this._points.frequency)
+        this._series.amplitude.clear()
+        this._series.amplitude.add(this._points.frequency)
         this._series.history.clear()
         this._series.history.add(this._points.history)
-        this._series.maxAmplitude.display.clear()
-        this._series.maxAmplitude.display.add(this._points.maxHistory)
+        this._series.maxAmplitude.clear()
+        this._series.maxAmplitude.add(this._points.maxHistory)
     }
 
     /**
