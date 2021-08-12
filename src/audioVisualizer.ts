@@ -8,7 +8,6 @@ import {
     Dashboard,
     lightningChart,
     Themes,
-    DataPatterns,
     AxisScrollStrategies,
     FormattingRange,
     UIElementBuilders,
@@ -16,17 +15,14 @@ import {
     SolidLine,
     SolidFill,
     ColorHEX,
-    VisibleTicks,
     IntensityGridSeries,
     ColorRGBA,
     LUT,
     PalettedFill,
     Axis,
     emptyLine,
-    emptyTick,
     emptyFill,
     NumericTickStrategy,
-    AxisTickStrategy,
     ChartOptions,
     PointMarker,
     UIBackground,
@@ -42,9 +38,9 @@ import {
 
 // // Use theme if provided
 const urlParams = new URLSearchParams(window.location.search);
-let theme = Themes.dark
+let theme = Themes.darkGold
 if (urlParams.get('theme') == 'light') {
-    theme = Themes.light
+    theme = Themes.lightNew
     document.body.style.backgroundColor = '#fff'
     document.querySelector('label').style.color = '#000'
 }
@@ -318,7 +314,7 @@ export class AudioVisualizer {
 
         // create series
         let seriesColor = '#fff'
-        if (theme == Themes.light)
+        if (theme == Themes.lightNew)
             seriesColor = '#0A7AAD'
         this._series = {
             timeDomain: this._setupSeries(this._charts.timeDomain, 'Time Domain', seriesColor, false),
@@ -403,7 +399,7 @@ export class AudioVisualizer {
                 theme
             })
             .setSplitterStyle((style: SolidLine) => style.setThickness(5))
-        if (theme == Themes.dark)
+        if (theme == Themes.darkGold)
             this._db.setBackgroundStrokeStyle((s: SolidLine) => s.setThickness(0))
     }
 
