@@ -1,4 +1,4 @@
-import './styles/main.scss'
+import './styles/main.css'
 import { SrcOption, setupSourceLabels, sourceAudioFiles } from "./audioSources"
 import { setupPlayPause } from "./controls"
 import { AudioVisualizer } from "./audioVisualizer"
