@@ -15,7 +15,6 @@ import {
     SolidLine,
     SolidFill,
     ColorHEX,
-    IntensityGridSeries,
     ColorRGBA,
     LUT,
     PalettedFill,
@@ -40,7 +39,7 @@ import {
 
 // // Use theme if provided
 const urlParams = new URLSearchParams(window.location.search);
-let theme = Themes.auroraBorealisNew
+let theme = Themes[urlParams.get("theme")] || Themes.auroraBorealisNew;
 if (urlParams.get('theme') == 'light') {
     theme = Themes.lightNew
     document.body.style.backgroundColor = '#fff'
@@ -295,7 +294,7 @@ export class AudioVisualizer {
             .setMouseInteractions(false)
 
         // replace the default axis tick strategy formatter formatValue function
-        this._charts.waveformHistory.getDefaultAxisX().setTickStyle<'Numeric'>((style) => style
+        this._charts.waveformHistory.getDefaultAxisX().setTickStrategy('Numeric',(style) => style
             .setFormattingFunction((value: number, range: FormattingRange): string => {
                 return (value / this._audioCtx.sampleRate).toFixed(2)
             })
@@ -328,7 +327,10 @@ export class AudioVisualizer {
         // setup waveform series
         this._series.waveform
             .setMouseInteractions(false)
-            .setMaxPointCount(this._audioCtx.sampleRate * this._waveformHistoryLength * 2)
+            .setDataCleaning({
+                minDataPointCount: this._audioCtx.sampleRate * this._waveformHistoryLength * 2,
+              })
+           // .setMaxPointCount(this._audioCtx.sampleRate * this._waveformHistoryLength * 2)
             .setCursorInterpolationEnabled(false)
             .setCursorResultTableFormatter((tableBuilder, series, x, y) => tableBuilder
                 .addRow(series.getName())
@@ -371,7 +373,7 @@ export class AudioVisualizer {
             .setTitle('Time (s)')
             .setTitleFont(f => f.setSize(13))
             .setTitleMargin(-5)
-            .setTickStyle((tickStrategy: TimeTickStrategy) => tickStrategy
+            .setTickStrategy(AxisTickStrategies.Time, (tickStrategy) => tickStrategy
                 .setMajorTickStyle((tickStyle) => tickStyle
                     .setTickPadding(0)
                     .setLabelPadding(-5)
@@ -408,7 +410,7 @@ export class AudioVisualizer {
         })
             .setTitle(title)
             .setPadding({ top: 2, left: 1, right: 6, bottom: 2 })
-            .setTitleMarginTop(2)
+            .setTitleMargin({ top: 2 })
         chart.getDefaultAxisX()
             .setTitle(xAxisTitle)
             .setTitleFont(f => f.setSize(13))
