@@ -39,7 +39,7 @@ import {
 
 // // Use theme if provided
 const urlParams = new URLSearchParams(window.location.search);
-let theme = Themes[urlParams.get("theme")] || Themes.auroraBorealisNew;
+let theme = Themes[urlParams.get("theme")] || Themes.darkGold;
 if (urlParams.get('theme') == 'light') {
     theme = Themes.lightNew
     document.body.style.backgroundColor = '#fff'
