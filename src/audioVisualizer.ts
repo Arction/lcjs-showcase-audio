@@ -12,21 +12,15 @@ import {
     FormattingRange,
     UIElementBuilders,
     UIOrigins,
-    SolidLine,
-    SolidFill,
-    ColorHEX,
-    ColorRGBA,
     LUT,
     PalettedFill,
-    Axis,
     emptyLine,
-    emptyFill,
     NumericTickStrategy,
     ChartOptions,
     PointMarker,
     UIBackground,
     HeatmapScrollingGridSeriesIntensityValues,
-    TimeTickStrategy,
+    regularColorSteps,
 } from "@arction/lcjs"
 import {
     Scaler,
@@ -39,9 +33,8 @@ import {
 
 // // Use theme if provided
 const urlParams = new URLSearchParams(window.location.search);
-let theme = Themes[urlParams.get("theme")] || Themes.darkGold;
-if (urlParams.get('theme') == 'light') {
-    theme = Themes.lightNew
+let theme = Themes[urlParams.get("theme") as keyof Themes] || Themes.darkGold;
+if (!theme.isDark) {
     document.body.style.backgroundColor = '#fff'
     document.querySelector('label').style.color = '#000'
 }
@@ -307,26 +300,21 @@ export class AudioVisualizer {
             .setInterval(0, (this._waveformHistoryLength * this._audioCtx.sampleRate) / (this._audioCtx.sampleRate / this._audioNodes.analyzer.frequencyBinCount)).setScrollStrategy(AxisScrollStrategies.progressive)
 
         // create series
-        let seriesColor = '#fff'
-        if (theme == Themes.lightNew)
-            seriesColor = '#0A7AAD'
         this._series = {
-            timeDomain: this._setupSeries(this._charts.timeDomain, 'Time Domain', seriesColor, false),
-            waveform: this._setupSeries(this._charts.waveformHistory, 'Waveform History', seriesColor, true),
-            amplitude: this._setupSeries(this._charts.spectrum, 'Amplitude', '#0d0', false),
-            history: this._setupSeries(this._charts.spectrum, 'Amplitude Decay', '#0aa', false),
-            maxAmplitude: this._setupSeries(this._charts.spectrum, 'Amplitude Max', '#aa0', false),
+            timeDomain: this._setupSeries(this._charts.timeDomain, 'Time Domain', false),
+            waveform: this._setupSeries(this._charts.waveformHistory, 'Waveform History', true),
+            amplitude: this._setupSeries(this._charts.spectrum, 'Amplitude', false),
+            history: this._setupSeries(this._charts.spectrum, 'Amplitude Decay', false),
+            maxAmplitude: this._setupSeries(this._charts.spectrum, 'Amplitude Max', false),
             spectrogram: this._setupHeatmapSeries(this._charts.spectrogram, this._spectrogramDataCount, fBinCount / 2, maxFreq / 2, 'Spectrogram'),
         }
 
         // setup time-domain series
         this._series.timeDomain
-            .setMouseInteractions(false)
             .setCursorEnabled(false)
 
         // setup waveform series
         this._series.waveform
-            .setMouseInteractions(false)
             .setDataCleaning({
                 minDataPointCount: this._audioCtx.sampleRate * this._waveformHistoryLength * 2,
               })
@@ -342,15 +330,12 @@ export class AudioVisualizer {
         // setup frequency series
         this._series.amplitude
             .setCursorEnabled(false)
-            .setMouseInteractions(false)
         // setup max frequency series
         this._series.maxAmplitude
             .setCursorEnabled(false)
-            .setMouseInteractions(false)
         // setup frequency decay series
         this._series.history
             .setCursorEnabled(false)
-            .setMouseInteractions(false)
 
         // history reset button
         this._charts.spectrum.addUIElement(
@@ -369,7 +354,6 @@ export class AudioVisualizer {
             })
 
         this._series.spectrogram.axisX
-            .setMouseInteractions(false)
             .setTitle('Time (s)')
             .setTitleFont(f => f.setSize(13))
             .setTitleMargin(-5)
@@ -443,7 +427,7 @@ export class AudioVisualizer {
      * @param name Name of the series
      * @param color Color of the series line
      */
-    private _setupSeries(chart: ChartXY, name: string, color: string = '#fff', useDataPattern: boolean = true): LineSeries {
+    private _setupSeries(chart: ChartXY, name: string, useDataPattern: boolean = true): LineSeries {
         const series = chart.addLineSeries({
             dataPattern: useDataPattern ? {
                 pattern: 'ProgressiveX',
@@ -451,7 +435,6 @@ export class AudioVisualizer {
                 allowDataGrouping: true
             } : undefined
         })
-            .setStrokeStyle((style: SolidLine) => style.setFillStyle((fill: SolidFill) => fill.setColor(ColorHEX(color))))
             .setName(name)
             .setCursorInterpolationEnabled(false)
         return series
@@ -463,12 +446,7 @@ export class AudioVisualizer {
      */
     private _setupHeatmapSeries(chart: ChartXY, columnLength: number, columnCount: number, yMax: number, name: string): HeatmapScrollingGridSeriesIntensityValues {
         const palette = new LUT({
-            steps: [
-                { value: 0, color: ColorRGBA(0, 0, 0, 0) },
-                { value: 255 * .3, color: ColorRGBA(0, 255, 0) },
-                { value: 255 * .6, color: ColorRGBA(255, 255, 0) },
-                { value: 255, color: ColorRGBA(255, 0, 0) }
-            ],
+            steps: regularColorSteps(0, 255, theme.examples.spectrogramColorPalette),
             interpolate: true
         })
         const series = chart.addHeatmapScrollingGridSeries({
@@ -480,7 +458,6 @@ export class AudioVisualizer {
             .setFillStyle(new PalettedFill({ lut: palette }))
             .setName(name)
             .setCursorEnabled(false)
-            .setMouseInteractions(false)
             .setDataCleaning({
                 minDataPointCount: (this._audioCtx.sampleRate / this._audioNodes.analyzer.frequencyBinCount) * this._waveformHistoryLength
             })
