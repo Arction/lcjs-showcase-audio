@@ -51,7 +51,8 @@ module.exports = {
         }),
         new CopyPlugin({
             patterns: [
-                { from: 'src/static', to: '' }
+                { from: 'src/static', to: '' },
+                { from: 'node_modules/@arction/lcjs/dist/resources', to: 'resources' },
             ]
         })
     ]
