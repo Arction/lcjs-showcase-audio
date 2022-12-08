@@ -263,7 +263,8 @@ export class AudioVisualizer {
         this._charts.waveformHistory
             .getDefaultAxisX()
             .setScrollStrategy(AxisScrollStrategies.progressive)
-            .setInterval(0, this._audioCtx.sampleRate * this._waveformHistoryLength)
+            .setInterval({ start: 0, end: this._audioCtx.sampleRate * this._waveformHistoryLength, stopAxisAfter: false})
+            
         this._charts.waveformHistory
             .getDefaultAxisY()
             .setMouseInteractions(false)
@@ -271,9 +272,9 @@ export class AudioVisualizer {
             .setChartInteractionFitByDrag(false)
             .setChartInteractionZoomByWheel(false)
 
-        this._charts.timeDomain.getDefaultAxisX().setInterval(0, this._audioNodes.analyzer.fftSize)
-        this._charts.spectrum.getDefaultAxisX().setInterval(0, this._audioCtx.sampleRate / this._audioNodes.analyzer.fftSize * this._audioNodes.analyzer.frequencyBinCount)
-        this._charts.spectrum.getDefaultAxisY().setInterval(this._audioNodes.analyzer.minDecibels, this._audioNodes.analyzer.maxDecibels)
+        this._charts.timeDomain.getDefaultAxisX().setInterval({ start: 0, end: this._audioNodes.analyzer.fftSize, stopAxisAfter: false })
+        this._charts.spectrum.getDefaultAxisX().setInterval({ start: 0, end: this._audioCtx.sampleRate / this._audioNodes.analyzer.fftSize * this._audioNodes.analyzer.frequencyBinCount, stopAxisAfter: false })
+        this._charts.spectrum.getDefaultAxisY().setInterval({ start: this._audioNodes.analyzer.minDecibels, end: this._audioNodes.analyzer.maxDecibels, stopAxisAfter: false })
         // frequency chart is twice as large as the other charts
         this._db.setRowHeight(2, 2)
 
@@ -297,7 +298,7 @@ export class AudioVisualizer {
             .getDefaultAxisX()
             .setTickStrategy(AxisTickStrategies.Time)
             // // Set interval for the spectrogram
-            .setInterval(0, (this._waveformHistoryLength * this._audioCtx.sampleRate) / (this._audioCtx.sampleRate / this._audioNodes.analyzer.frequencyBinCount)).setScrollStrategy(AxisScrollStrategies.progressive)
+            .setInterval({ start: 0, end: (this._waveformHistoryLength * this._audioCtx.sampleRate) / (this._audioCtx.sampleRate / this._audioNodes.analyzer.frequencyBinCount), stopAxisAfter: false}).setScrollStrategy(AxisScrollStrategies.progressive)
 
         // create series
         this._series = {
@@ -409,7 +410,7 @@ export class AudioVisualizer {
 
         chart.getDefaultAxisY()
             .setScrollStrategy(undefined)
-            .setInterval(yInterval[0], yInterval[1])
+            .setInterval({start: yInterval[0], end: yInterval[1], stopAxisAfter: false})
             .setTitle(yAxisTitle)
             .setTitleFont(f => f.setSize(13))
             .setTitleMargin(0)
