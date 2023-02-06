@@ -1,95 +1,95 @@
 html,
 body {
-  margin: 0;
-  height: 100%;
-  overflow: hidden;
-  background-color: #1c3450;
+    margin: 0;
+    height: 100%;
+    overflow: hidden;
+    background-color: #1c3450;
 }
 
 .container {
-  height: 100%;
-  width: 100%;
-  display: flex;
-  flex-direction: column;
+    height: 100%;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
 }
 
 .container #chart {
-  flex: 1 1 auto;
-  display: flex;
-  height: 100%;
-  width: 100%;
+    flex: 1 1 auto;
+    display: flex;
+    height: 100%;
+    width: 100%;
 }
 
 .container #chart canvas {
-  height: auto !important;
+    height: auto !important;
 }
 
 #resume {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 1;
-  cursor: pointer;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1;
+    cursor: pointer;
 }
 
 #resume img {
-  width: 100%;
-  height: 100%;
+    width: 100%;
+    height: 100%;
 }
 
 #play-pause {
-  height: 33px;
-  width: 40px;
+    height: 33px;
+    width: 40px;
 }
 
 #github-link {
-  position: fixed;
-  display: block;
-  top: 0;
-  right: 0;
-  margin-left: auto;
-  z-index: 2;
+    position: fixed;
+    display: block;
+    top: 0;
+    right: 0;
+    margin-left: auto;
+    z-index: 2;
 }
 
 #github-link img {
-  display: block;
-  margin: 10px 10px 10px auto;
+    display: block;
+    margin: 10px 10px 10px auto;
 }
 
 @media screen and (max-width: 770px) {
-  #github-link {
-    top: unset;
-    bottom: 0;
-  }
+    #github-link {
+        top: unset;
+        bottom: 0;
+    }
 }
 
 #controls {
-  z-index: 1;
-  display: flex;
+    z-index: 1;
+    display: flex;
 }
 
 #controls label {
-  color: #e4e4e4;
-  align-self: center;
+    color: #e4e4e4;
+    align-self: center;
 }
 
 #controls input {
-  align-self: center;
+    align-self: center;
 }
 
 .audio-input * {
-  align-self: center;
+    align-self: center;
 }
 
 .error {
-  z-index: 2;
-  position: fixed;
-  top: 50%;
-  font-size: larger;
-  background-color: #0009;
-  color: white;
-  left: 0;
-  right: 0;
+    z-index: 2;
+    position: fixed;
+    top: 50%;
+    font-size: larger;
+    background-color: #0009;
+    color: white;
+    left: 0;
+    right: 0;
 }

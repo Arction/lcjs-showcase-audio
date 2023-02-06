@@ -6,7 +6,7 @@ export enum SrcOption {
     file = 'file',
     truck = 'truck',
     f500_1000_1000 = 'f500_1000_1000',
-    symbhony_no_5 = 'symbhony_no_5'
+    symbhony_no_5 = 'symbhony_no_5',
 }
 
 /**
@@ -17,7 +17,7 @@ const srcLabels: { [key in keyof typeof SrcOption]: string } = {
     mic: 'Microphone',
     file: 'Load Audio File from URL',
     f500_1000_1000: '500Hz, 1kHz and 10kHz signals',
-    symbhony_no_5: "Symphony no. 5 in Cm, Op. 67 - IV. Allegro"
+    symbhony_no_5: 'Symphony no. 5 in Cm, Op. 67 - IV. Allegro',
 }
 
 /**
@@ -26,7 +26,7 @@ const srcLabels: { [key in keyof typeof SrcOption]: string } = {
 export const sourceAudioFiles = {
     truck: 'Truck_driving_by-Jason_Baker-2112866529.wav',
     symbhony_no_5: 'Symphony no. 5 in Cm, Op. 67 - IV. Allegro.mp3',
-    f500_1000_1000: '500_1000_10000.wav'
+    f500_1000_1000: '500_1000_10000.wav',
 }
 
 /**
@@ -58,12 +58,11 @@ export const loadAudioFile = async (url: string, audioCtx: AudioContext): Promis
  */
 export const setupSourceLabels = () => {
     const selector = document.getElementById('src-selector')
-    Object.keys(srcLabels).forEach(key => {
+    Object.keys(srcLabels).forEach((key) => {
         const option = document.createElement('option')
         option.value = key
         option.text = srcLabels[key]
-        if (key === SrcOption.truck)
-            option.selected = true
+        if (key === SrcOption.truck) option.selected = true
         selector.appendChild(option)
     })
 }

@@ -1,17 +1,17 @@
 import './styles/main.css'
-import { SrcOption, setupSourceLabels, sourceAudioFiles } from "./audioSources"
-import { setupPlayPause } from "./controls"
-import { AudioVisualizer } from "./audioVisualizer"
+import { SrcOption, setupSourceLabels, sourceAudioFiles } from './audioSources'
+import { setupPlayPause } from './controls'
+import { AudioVisualizer } from './audioVisualizer'
 
 // hide link when in iframe
-function inIframe () {
+function inIframe() {
     try {
         return window.self !== window.top
     } catch (e) {
         return true
     }
 }
-if (inIframe()){
+if (inIframe()) {
     document.getElementById('github-link').style.display = 'none'
 }
 /**
