@@ -273,13 +273,11 @@ export class AudioVisualizer {
             .setChartInteractionZoomByWheel(false)
 
         this._charts.timeDomain.getDefaultAxisX().setInterval({ start: 0, end: this._audioNodes.analyzer.fftSize, stopAxisAfter: false })
-        this._charts.spectrum
-            .getDefaultAxisX()
-            .setInterval({
-                start: 0,
-                end: (this._audioCtx.sampleRate / this._audioNodes.analyzer.fftSize) * this._audioNodes.analyzer.frequencyBinCount,
-                stopAxisAfter: false,
-            })
+        this._charts.spectrum.getDefaultAxisX().setInterval({
+            start: 0,
+            end: (this._audioCtx.sampleRate / this._audioNodes.analyzer.fftSize) * this._audioNodes.analyzer.frequencyBinCount,
+            stopAxisAfter: false,
+        })
         this._charts.spectrum
             .getDefaultAxisY()
             .setInterval({ start: this._audioNodes.analyzer.minDecibels, end: this._audioNodes.analyzer.maxDecibels, stopAxisAfter: false })
@@ -383,7 +381,7 @@ export class AudioVisualizer {
      * Create and setup the dashboard
      */
     private _setupDashboard() {
-        this._db = lightningChart({ warnings: false })
+        this._db = lightningChart({ warnings: false, resourcesBaseUrl: `${window.location.origin}${window.location.pathname}resources` })
             .Dashboard({
                 container: 'chart',
                 numberOfColumns: 2,
