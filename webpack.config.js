@@ -10,16 +10,13 @@ module.exports = {
             {
                 test: /\.tsx?$/,
                 use: 'ts-loader',
-                exclude: /node_modules/
+                exclude: /node_modules/,
             },
             {
                 test: /\.[ac]ss$/i,
-                use: [
-                    'style-loader',
-                    'css-loader',
-                ]
-            }
-        ]
+                use: ['style-loader', 'css-loader'],
+            },
+        ],
     },
     devtool: 'eval-source-map',
     devServer: {
@@ -27,33 +24,33 @@ module.exports = {
         compress: true,
         disableHostCheck: true,
         headers: {
-            "Access-Control-Allow-Origin": "*",
-            "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, PATCH, OPTIONS",
-            "Access-Control-Allow-Headers": "X-Requested-With, content-type, Authorization"
-        }
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
+            'Access-Control-Allow-Headers': 'X-Requested-With, content-type, Authorization',
+        },
     },
     resolve: {
-        extensions: ['.ts', '.js']
+        extensions: ['.ts', '.js'],
     },
     output: {
         filename: '[name].bundle.js',
-        path: path.resolve(__dirname, 'out')
+        path: path.resolve(__dirname, 'out'),
     },
     optimization: {
         splitChunks: {
-            chunks: 'all'
-        }
+            chunks: 'all',
+        },
     },
     plugins: [
         new HtmlWebpackPlugin({
             title: 'lcjs-typescript-example',
-            template: '!!handlebars-loader!src/index.hbs'
+            template: '!!handlebars-loader!src/index.hbs',
         }),
         new CopyPlugin({
             patterns: [
                 { from: 'src/static', to: '' },
-                { from: 'node_modules/@arction/lcjs/dist/resources', to: 'resources' },
-            ]
-        })
-    ]
+                { from: 'node_modules/@lightningChart/lcjs/dist/resources', to: 'resources' },
+            ],
+        }),
+    ],
 }

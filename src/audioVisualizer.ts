@@ -21,7 +21,9 @@ import {
     UIBackground,
     HeatmapScrollingGridSeriesIntensityValues,
     regularColorSteps,
-} from '@arction/lcjs'
+    PointLineAreaSeries,
+    emptyFill,
+} from '@lightningchart/lcjs'
 import { Scaler, noScaler, multiplierScaler, dbScaler, freqScaler, offSetScaler } from './utils'
 
 // // Use theme if provided
@@ -123,18 +125,13 @@ export class AudioVisualizer {
      * All different series
      */
     private _series: {
-        timeDomain: LineSeries
-        waveform: LineSeries
-        amplitude: LineSeries
-        history: LineSeries
-        maxAmplitude: LineSeries
+        timeDomain: PointLineAreaSeries
+        waveform: PointLineAreaSeries
+        amplitude: PointLineAreaSeries
+        history: PointLineAreaSeries
+        maxAmplitude: PointLineAreaSeries
         spectrogram: HeatmapScrollingGridSeriesIntensityValues
     }
-
-    /**
-     * The 'time' of the last waveform data input point
-     */
-    private _lastTime: number = 0
 
     private readonly _spectrogramDataCount = 512
     private readonly _waveformHistoryLength = 25
@@ -164,6 +161,7 @@ export class AudioVisualizer {
         const mScaler = multiplierScaler(this._audioCtx.sampleRate / this._audioNodes.analyzer.fftSize)
         const dScaler = dbScaler(this._audioNodes.analyzer)
         // setup audio processor
+        let tStart = undefined
         this._audioNodes.processor.onaudioprocess = (ev: AudioProcessingEvent) => {
             // update data from analyzer
             this._audioNodes.analyzer.getByteTimeDomainData(this._data.timeDomain)
@@ -186,14 +184,22 @@ export class AudioVisualizer {
             this._series.timeDomain.clear()
             this._series.timeDomain.add(this._points.timeDomain)
 
-            // // add waveform data to the waveform series
-            const waveData = ArrayBufferToPointArray(this._data.timeDomain, offSetScaler(this._lastTime), freqScaler)
-            this._series.waveform.add(waveData)
-            this._lastTime += waveData.length
+            if (tStart === undefined) {
+                tStart = performance.now()
+            }
+            const tNow = performance.now() - tStart
+
+            // add waveform data to the waveform series
+            const waveData = Array.from(this._data.timeDomain).map(freqScaler)
+            this._series.waveform.appendSamples({
+                yValues: waveData,
+                start: tNow,
+                step: 1000 / this._audioCtx.sampleRate,
+            })
 
             const freqData = Array.from(this._data.frequency)
-            // this._series.spectrogram.addColumn(1, 'value', [freqData])
-            this._series.spectrogram.addIntensityValues([freqData])
+            const iSpectrogram = Math.floor(tNow / this._series.spectrogram.getStep().x)
+            this._series.spectrogram.invalidateIntensityValues({ iSample: iSpectrogram, values: [freqData] })
 
             this.update()
 
@@ -263,7 +269,8 @@ export class AudioVisualizer {
         this._charts.waveformHistory
             .getDefaultAxisX()
             .setScrollStrategy(AxisScrollStrategies.progressive)
-            .setInterval({ start: 0, end: this._audioCtx.sampleRate * this._waveformHistoryLength, stopAxisAfter: false })
+            .setInterval({ start: 0, end: 15_000, stopAxisAfter: false })
+            .setTickStrategy(AxisTickStrategies.Time)
 
         this._charts.waveformHistory
             .getDefaultAxisY()
@@ -279,6 +286,7 @@ export class AudioVisualizer {
             stopAxisAfter: false,
         })
         this._charts.spectrum
+            .setCursor((cursor) => cursor.setTickMarkerYVisible(false))
             .getDefaultAxisY()
             .setInterval({ start: this._audioNodes.analyzer.minDecibels, end: this._audioNodes.analyzer.maxDecibels, stopAxisAfter: false })
         // frequency chart is twice as large as the other charts
@@ -288,17 +296,9 @@ export class AudioVisualizer {
         this._charts.timeDomain.getDefaultAxisX().setMouseInteractions(false)
         this._charts.timeDomain.getDefaultAxisY().setMouseInteractions(false)
 
-        // replace the default axis tick strategy formatter formatValue function
-        this._charts.waveformHistory.getDefaultAxisX().setTickStrategy('Numeric', (style) =>
-            style.setFormattingFunction((value: number, range: FormattingRange): string => {
-                return (value / this._audioCtx.sampleRate).toFixed(2)
-            }),
-        )
-
         this._charts.spectrogram
             .getDefaultAxisX()
             .setTickStrategy(AxisTickStrategies.Time)
-            // // Set interval for the spectrogram
             .setInterval({
                 start: 0,
                 end:
@@ -310,11 +310,11 @@ export class AudioVisualizer {
 
         // create series
         this._series = {
-            timeDomain: this._setupSeries(this._charts.timeDomain, 'Time Domain', false),
-            waveform: this._setupSeries(this._charts.waveformHistory, 'Waveform History', true),
-            amplitude: this._setupSeries(this._charts.spectrum, 'Amplitude', false),
-            history: this._setupSeries(this._charts.spectrum, 'Amplitude Decay', false),
-            maxAmplitude: this._setupSeries(this._charts.spectrum, 'Amplitude Max', false),
+            timeDomain: this._setupSeries(this._charts.timeDomain, 'Time Domain'),
+            waveform: this._setupSeries(this._charts.waveformHistory, 'Waveform History'),
+            amplitude: this._setupSeries(this._charts.spectrum, 'Amplitude'),
+            history: this._setupSeries(this._charts.spectrum, 'Amplitude Decay'),
+            maxAmplitude: this._setupSeries(this._charts.spectrum, 'Amplitude Max'),
             spectrogram: this._setupHeatmapSeries(
                 this._charts.spectrogram,
                 this._spectrogramDataCount,
@@ -324,29 +324,8 @@ export class AudioVisualizer {
             ),
         }
 
-        // setup time-domain series
-        this._series.timeDomain.setCursorEnabled(false)
-
         // setup waveform series
-        this._series.waveform
-            .setDataCleaning({
-                minDataPointCount: this._audioCtx.sampleRate * this._waveformHistoryLength * 2,
-            })
-            // .setMaxPointCount(this._audioCtx.sampleRate * this._waveformHistoryLength * 2)
-            .setCursorInterpolationEnabled(false)
-            .setCursorResultTableFormatter((tableBuilder, series, x, y) =>
-                tableBuilder
-                    .addRow(series.getName())
-                    .addRow('Time', series.axisX.formatValue(x), 's')
-                    .addRow('Amplitude', series.axisY.formatValue(y)),
-            )
-
-        // setup frequency series
-        this._series.amplitude.setCursorEnabled(false)
-        // setup max frequency series
-        this._series.maxAmplitude.setCursorEnabled(false)
-        // setup frequency decay series
-        this._series.history.setCursorEnabled(false)
+        this._series.waveform.setStrokeStyle((stroke) => stroke.setThickness(-1))
 
         // history reset button
         this._charts.spectrum
@@ -363,25 +342,17 @@ export class AudioVisualizer {
                 this._series.maxAmplitude.add(ArrayBufferToPointArray(this._data.maxHistory))
             })
 
-        this._series.spectrogram.axisX
-            .setTitle('Time (s)')
-            .setTitleFont((f) => f.setSize(13))
-            .setTitleMargin(-5)
-            .setTickStrategy(AxisTickStrategies.Time, (tickStrategy) =>
-                tickStrategy.setMajorTickStyle((tickStyle) =>
-                    tickStyle
-                        .setTickPadding(0)
-                        .setLabelPadding(-5)
-                        .setLabelFont((f) => f.setSize(12)),
-                ),
-            )
+        this._series.spectrogram.axisX.setTitle('Time (s)').setTitleFont((f) => f.setSize(13))
     }
 
     /**
      * Create and setup the dashboard
      */
     private _setupDashboard() {
-        this._db = lightningChart({ warnings: false, resourcesBaseUrl: `${window.location.origin}${window.location.pathname}resources` })
+        this._db = lightningChart({
+            warnings: false,
+            resourcesBaseUrl: `${window.location.origin}${window.location.pathname}resources`,
+        })
             .Dashboard({
                 container: 'chart',
                 numberOfColumns: 2,
@@ -401,7 +372,7 @@ export class AudioVisualizer {
      * @param yInterval Y-Axis interval
      */
     private _setupChart(
-        options: ChartOptions<PointMarker, UIBackground>,
+        options: ChartOptions<UIBackground>,
         title: string,
         xAxisTitle: string,
         yAxisTitle: string,
@@ -412,21 +383,13 @@ export class AudioVisualizer {
                 ...options,
             })
             .setTitle(title)
-            .setPadding({ top: 2, left: 1, right: 6, bottom: 2 })
-            .setTitleMargin({ top: 2 })
+            .setTitleFont((font) => font.setSize(12))
+            .setPadding({ top: 2, bottom: 2, left: 2, right: 30 })
+            .setCursorMode('show-all-interpolated')
         chart
             .getDefaultAxisX()
             .setTitle(xAxisTitle)
-            .setTitleFont((f) => f.setSize(13))
-            .setTitleMargin(-5)
-            .setTickStrategy(AxisTickStrategies.Numeric, (tickStrategy: NumericTickStrategy) =>
-                tickStrategy.setMajorTickStyle((tickStyle) =>
-                    tickStyle
-                        .setTickPadding(0)
-                        .setLabelPadding(-5)
-                        .setLabelFont((f) => f.setSize(12)),
-                ),
-            )
+            .setTitleFont((f) => f.setSize(12))
             .setAnimationZoom(undefined)
 
         chart
@@ -434,11 +397,7 @@ export class AudioVisualizer {
             .setScrollStrategy(undefined)
             .setInterval({ start: yInterval[0], end: yInterval[1], stopAxisAfter: false })
             .setTitle(yAxisTitle)
-            .setTitleFont((f) => f.setSize(13))
-            .setTitleMargin(0)
-            .setTickStrategy(AxisTickStrategies.Numeric, (tickStrategy: NumericTickStrategy) =>
-                tickStrategy.setMajorTickStyle((tickStyle) => tickStyle.setLabelFont((f) => f.setSize(12))),
-            )
+            .setTitleFont((f) => f.setSize(12))
             .setAnimationZoom(undefined)
         return chart
     }
@@ -449,19 +408,15 @@ export class AudioVisualizer {
      * @param name Name of the series
      * @param color Color of the series line
      */
-    private _setupSeries(chart: ChartXY, name: string, useDataPattern: boolean = true): LineSeries {
+    private _setupSeries(chart: ChartXY, name: string, useDataPattern: boolean = true): PointLineAreaSeries {
         const series = chart
-            .addLineSeries({
-                dataPattern: useDataPattern
-                    ? {
-                          pattern: 'ProgressiveX',
-                          regularProgressiveStep: true,
-                          allowDataGrouping: true,
-                      }
-                    : undefined,
+            .addPointLineAreaSeries({
+                dataPattern: useDataPattern ? 'ProgressiveX' : null,
             })
+            .setAreaFillStyle(emptyFill)
+            .setPointFillStyle(emptyFill)
+            .setMaxSampleCount({ mode: 'auto' })
             .setName(name)
-            .setCursorInterpolationEnabled(false)
         return series
     }
     /**
@@ -484,12 +439,11 @@ export class AudioVisualizer {
             .addHeatmapScrollingGridSeries({
                 resolution: columnCount,
                 scrollDimension: 'columns',
-                start: { x: 0, y: 0 },
-                step: { x: this._audioCtx.sampleRate / this._audioNodes.analyzer.frequencyBinCount, y: yMax / columnCount },
             })
+            .setStart({ x: 0, y: 0 })
+            .setStep({ x: this._audioCtx.sampleRate / this._audioNodes.analyzer.frequencyBinCount, y: yMax / columnCount })
             .setFillStyle(new PalettedFill({ lut: palette }))
             .setName(name)
-            .setCursorEnabled(false)
             .setDataCleaning({
                 minDataPointCount: (this._audioCtx.sampleRate / this._audioNodes.analyzer.frequencyBinCount) * this._waveformHistoryLength,
             })
