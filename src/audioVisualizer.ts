@@ -193,7 +193,6 @@ export class AudioVisualizer {
             const waveData = Array.from(this._data.timeDomain).map(freqScaler)
             this._series.waveform.appendSamples({
                 yValues: waveData,
-                start: tNow,
                 step: 1000 / this._audioCtx.sampleRate,
             })
 
@@ -325,7 +324,7 @@ export class AudioVisualizer {
         }
 
         // setup waveform series
-        this._series.waveform.setStrokeStyle((stroke) => stroke.setThickness(-1))
+        this._series.waveform.setStrokeStyle((stroke) => stroke.setThickness(1))
 
         // history reset button
         this._charts.spectrum
