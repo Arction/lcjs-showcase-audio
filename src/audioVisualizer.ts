@@ -23,6 +23,7 @@ import {
     regularColorSteps,
     PointLineAreaSeries,
     emptyFill,
+    UIDraggingModes,
 } from '@lightningchart/lcjs'
 import { Scaler, noScaler, multiplierScaler, dbScaler, freqScaler, offSetScaler } from './utils'
 
@@ -271,12 +272,7 @@ export class AudioVisualizer {
             .setInterval({ start: 0, end: 15_000, stopAxisAfter: false })
             .setTickStrategy(AxisTickStrategies.Time)
 
-        this._charts.waveformHistory
-            .getDefaultAxisY()
-            .setMouseInteractions(false)
-            .setChartInteractionZoomByDrag(false)
-            .setChartInteractionFitByDrag(false)
-            .setChartInteractionZoomByWheel(false)
+        this._charts.waveformHistory.getDefaultAxisY()
 
         this._charts.timeDomain.getDefaultAxisX().setInterval({ start: 0, end: this._audioNodes.analyzer.fftSize, stopAxisAfter: false })
         this._charts.spectrum.getDefaultAxisX().setInterval({
@@ -291,9 +287,7 @@ export class AudioVisualizer {
         // frequency chart is twice as large as the other charts
         this._db.setRowHeight(2, 2)
 
-        this._charts.timeDomain.setMouseInteractions(false)
-        this._charts.timeDomain.getDefaultAxisX().setMouseInteractions(false)
-        this._charts.timeDomain.getDefaultAxisY().setMouseInteractions(false)
+        this._charts.timeDomain.setUserInteractions(undefined)
 
         this._charts.spectrogram
             .getDefaultAxisX()
@@ -328,11 +322,12 @@ export class AudioVisualizer {
 
         // history reset button
         this._charts.spectrum
-            .addUIElement(UIElementBuilders.ButtonBox)
+            .addUIElement(UIElementBuilders.TextBox)
+            .setDraggingMode(UIDraggingModes.notDraggable)
             .setText('Reset Spectrum Max')
             .setOrigin(UIOrigins.LeftTop)
             .setPosition({ x: 0.2, y: 100 })
-            .onMouseClick(() => {
+            .addEventListener('click', () => {
                 for (let i = 0; i < this._data.maxHistory.byteLength; i++) {
                     this._data.maxHistory[i] = 0
                 }
